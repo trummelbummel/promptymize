@@ -22,6 +22,10 @@ test: ## Test the code with pytest
 scrape: ## Scrape a documentation page to resources/<folder>
 	@uv run auto-prompt-scrape "$(URL)" "$(FOLDER)"
 
+.PHONY: scrape-batch
+scrape-batch: ## Batch scrape from YAML config: make scrape-batch CONFIG=scraper_targets.yaml
+	@uv run auto-prompt-web-scrape batch "$(CONFIG)" --out-root resources/data
+
 .PHONY: build
 build: clean-build ## Build wheel file
 	@echo "🚀 Creating wheel file"

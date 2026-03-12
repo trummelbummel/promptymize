@@ -1,35 +1,37 @@
 targets:
+  # Model specific Prompt Engineering Best Practices – Resource List
   - folder_name: claude
-    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+    url: 
+    - https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
 
-prompting-best-practices:
   # Prompt Engineering Best Practices – Resource List
-  - https://promptbuilder.cc/blog/openai-prompt-engineering-guide-best-practices-2026
-  - https://medium.com/google-cloud/10-prompt-engineering-techniques-every-beginner-should-know-bf6c195916c7
-  - https://pieces.medium.com/10-prompt-engineering-best-practices-a166fe2f101b
-  - https://medium.com/the-modern-scientist/best-prompt-techniques-for-best-llm-responses-24d2ff4f6bca
-  - https://medium.com/data-science-collective/practical-prompt-engineering-techniques-for-llms-881c912eda16
-  - https://medium.com/@aloy.banerjee30/prompt-engineering-techniques-for-llms-a-comprehensive-guide-46ca6466a41f
-  - https://medium.com/@sampan090611/prompt-engineering-techniques-for-large-language-models-c13b57321362
-  - https://medium.com/@derrickryangiggs/prompting-and-prompt-engineering-a-comprehensive-guide-to-controlling-llm-behavior-9c8b417bd253
-  - https://medium.com/data-science/prompt-engineering-tips-approaches-and-future-directions-d6baf5f12285
-  - https://medium.com/@karankakwani/mastering-prompt-engineering-for-chatgpt-tips-tricks-and-best-practices-a2d01b703dab
-  - https://medium.com/@generativeai.saif/the-ultimate-guide-to-prompt-engineering-in-2025-mastering-llm-interactions-8b88c5cf65b6
-  - https://medium.com/@SantoshEdulapalle/prompt-engineering-201-best-practices-for-getting-consistent-accurate-and-scalable-results-52d2273c0416
-  - https://medium.com/@nehaummareddy/top-5-prompt-engineering-techniques-for-llms-in-2025-f114d4958b4d
-  - https://dipjyotimetia.medium.com/prompt-engineering-principles-methods-and-best-practices-5b6dec81ddfe
-  - https://arinbasu.medium.com/a-plebs-guide-to-prompt-engineering-b54e0f06d4e8
-  - https://reykario.medium.com/4-must-know-ai-prompt-strategies-for-developers-0572e85a0730
-  - https://rkniyer999.medium.com/prompt-engineering-explained-from-basic-to-advanced-techniques-2995198eebb6
-  - https://statistician-in-stilettos.medium.com/best-practices-i-learned-for-ai-assisted-coding-70ff7359d403
 
-  ## Research papers
-  - https://arxiv.org/abs/2402.07927
-  - https://arxiv.org/abs/2406.06608
-  - https://arxiv.org/abs/2502.16923
-  - https://arxiv.org/abs/2509.11295
-
-  ## Academic / reference resources
-  - https://www.researchgate.net/publication/370554061_Prompt_Engineering_For_ChatGPT_A_Quick_Guide_To_Techniques_Tips_And_Best_Practices
-  - https://www.researchgate.net/publication/370531844_Prompt_Engineering_For_ChatGPT_A_Quick_Guide_To_Techniques_Tips_And_Best_Practices
-  - https://www.researchgate.net/publication/370554172_Prompt_Engineering_For_ChatGPT_A_Quick_Guide_To_Techniques_Tips_And_Best_Practices
+  - folder_name: prompting_best_practices
+    url:
+    - https://promptbuilder.cc/blog/openai-prompt-engineering-guide-best-practices-2026
+    - https://medium.com/google-cloud/10-prompt-engineering-techniques-every-beginner-should-know-bf6c195916c7
+    - https://pieces.medium.com/10-prompt-engineering-best-practices-a166fe2f101b
+    - https://medium.com/the-modern-scientist/best-prompt-techniques-for-best-llm-responses-24d2ff4f6bca
+    - https://medium.com/data-science-collective/practical-prompt-engineering-techniques-for-llms-881c912eda16
+    - https://medium.com/@aloy.banerjee30/prompt-engineering-techniques-for-llms-a-comprehensive-guide-46ca6466a41f
+    - https://medium.com/@sampan090611/prompt-engineering-techniques-for-large-language-models-c13b57321362
+    - https://medium.com/@derrickryangiggs/prompting-and-prompt-engineering-a-comprehensive-guide-to-controlling-llm-behavior-9c8b417bd253
+    - https://medium.com/data-science/prompt-engineering-tips-approaches-and-future-directions-d6baf5f12285
+    - https://medium.com/@karankakwani/mastering-prompt-engineering-for-chatgpt-tips-tricks-and-best-practices-a2d01b703dab
+    - https://medium.com/@generativeai.saif/the-ultimate-guide-to-prompt-engineering-in-2025-mastering-llm-interactions-8b88c5cf65b6
+    - https://medium.com/@SantoshEdulapalle/prompt-engineering-201-best-practices-for-getting-consistent-accurate-and-scalable-results-52d2273c0416
+    - https://medium.com/@nehaummareddy/top-5-prompt-engineering-techniques-for-llms-in-2025-f114d4958b4d
+    - https://dipjyotimetia.medium.com/prompt-engineering-principles-methods-and-best-practices-5b6dec81ddfe
+    - https://arinbasu.medium.com/a-plebs-guide-to-prompt-engineering-b54e0f06d4e8
+    - https://reykario.medium.com/4-must-know-ai-prompt-strategies-for-developers-0572e85a0730
+    - https://rkniyer999.medium.com/prompt-engineering-explained-from-basic-to-advanced-techniques-2995198eebb6
+    - https://statistician-in-stilettos.medium.com/best-practices-i-learned-for-ai-assisted-coding-70ff7359d403
+    ## Research papers
+    - https://arxiv.org/abs/2402.07927
+    - https://arxiv.org/abs/2406.06608
+    - https://arxiv.org/abs/2502.16923
+    - https://arxiv.org/abs/2509.11295
+    ## Academic / reference resources
+    - https://www.researchgate.net/publication/370554061_Prompt_Engineering_For_ChatGPT_A_Quick_Guide_To_Techniques_Tips_And_Best_Practices
+    - https://www.researchgate.net/publication/370531844_Prompt_Engineering_For_ChatGPT_A_Quick_Guide_To_Techniques_Tips_And_Best_Practices
+    - https://www.researchgate.net/publication/370554172_Prompt_Engineering_For_ChatGPT_A_Quick_Guide_To_Techniques_Tips_And_Best_Practices

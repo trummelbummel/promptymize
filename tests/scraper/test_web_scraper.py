@@ -21,7 +21,7 @@ class DummyPreprocessor:
         self._text = text
         self.called = 0
 
-    def html_to_text(self, html: str) -> str:  # noqa: ARG002
+    def html_to_markdown(self, html: str) -> str:  # noqa: ARG002
         self.called += 1
         return self._text
 

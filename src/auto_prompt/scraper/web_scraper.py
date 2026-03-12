@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
 from auto_prompt.scraper.config import ScraperConfig, load_config
@@ -35,8 +36,8 @@ class WebScraper:
         """Scrape a single URL into ``out_root``."""
 
         html = self._fetcher.fetch_html(url=url, render_js=render_js)
-        text = self._preprocessor.html_to_text(html)
-        return self._writer.write(url=url, folder_name=folder_name, html=html, text=text, out_root=out_root)
+        md = self._preprocessor.html_to_markdown(html)
+        return self._writer.write(url=url, folder_name=folder_name, html=html, text=md, out_root=out_root)
 
     def scrape_from_config(
         self,
@@ -45,13 +46,16 @@ class WebScraper:
         out_root: Path,
         render_js: bool = True,
     ) -> list[WebScrapeResult]:
-        """Scrape all targets defined in ``config``."""
+        """Scrape all targets defined in ``config``, skipping failures."""
 
         results: list[WebScrapeResult] = []
         for t in config.targets:
-            results.append(
-                self.write_scrape(url=t.url, folder_name=t.folder_name, out_root=out_root, render_js=render_js),
-            )
+            try:
+                results.append(
+                    self.write_scrape(url=t.url, folder_name=t.folder_name, out_root=out_root, render_js=render_js),
+                )
+            except Exception as exc:  # noqa: BLE001
+                print(f"SKIP {t.url} ({t.folder_name}): {exc}", file=sys.stderr)
         return results
 
 

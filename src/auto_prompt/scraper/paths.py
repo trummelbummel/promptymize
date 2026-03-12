@@ -16,11 +16,13 @@ def sanitize_folder_name(folder_name: str) -> str:
 def resolve_output_dir(*, out_root: Path, folder_name: str) -> Path:
     """Return the output directory for ``folder_name`` under ``out_root``.
 
-    Ensures the resulting path stays inside ``out_root`` to avoid accidental
-    writes outside the configured resources directory.
+    ``folder_name`` may contain ``/`` separators to create nested directories.
+    Each segment is sanitized individually. The resulting path is guaranteed to
+    stay inside ``out_root``.
     """
 
-    safe = sanitize_folder_name(folder_name)
+    parts = [p for p in folder_name.split("/") if p.strip()]
+    safe = "/".join(sanitize_folder_name(p) for p in parts) if parts else "scrape"
     candidate = (out_root / safe).resolve()
     root = out_root.resolve()
     if candidate == root or root not in candidate.parents:

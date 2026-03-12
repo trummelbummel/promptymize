@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from bs4 import BeautifulSoup, Tag
+from markdownify import markdownify as html_to_md
 
 
 class HtmlPreprocessor:
-    """Preprocess HTML into a normalized plain-text representation.
+    """Preprocess HTML into normalized representations.
 
     Keeps only the main content container and removes scripts, styles and
     navigation elements. The result is suitable for use in downstream prompt
-    construction.
+    construction, either as plain text or as lightweight Markdown.
     """
 
     def _pick_main_container(self, soup: BeautifulSoup) -> Tag:
@@ -52,6 +53,16 @@ class HtmlPreprocessor:
             collapsed.append(line)
         return "\n".join(collapsed).strip() + "\n"
 
+    def html_to_markdown(self, html: str) -> str:
+        """Convert ``html`` into a normalized Markdown representation."""
+
+        soup = BeautifulSoup(html, "html.parser")
+        container = self._pick_main_container(soup)
+        self._strip_noise(container)
+        md = html_to_md(str(container), heading_style="ATX", code_language_callback=lambda _: "")
+        md = md.replace("\r\n", "\n").strip() + "\n"
+        return md
+
 
 _DEFAULT_PREPROCESSOR = HtmlPreprocessor()
 
@@ -60,4 +71,10 @@ def html_to_text(html: str) -> str:
     """Convenience wrapper around :class:`HtmlPreprocessor` for callers."""
 
     return _DEFAULT_PREPROCESSOR.html_to_text(html)
+
+
+def html_to_markdown(html: str) -> str:
+    """Convenience wrapper that returns Markdown instead of plain text."""
+
+    return _DEFAULT_PREPROCESSOR.html_to_markdown(html)
 
