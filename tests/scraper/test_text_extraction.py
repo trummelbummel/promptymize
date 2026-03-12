@@ -1,4 +1,4 @@
-from scraper.text import html_to_text
+from auto_prompt.scraper.text import html_to_text
 
 
 def test_html_to_text_main_only_and_text_only() -> None:

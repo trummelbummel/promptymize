@@ -3,11 +3,11 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from scraper.config import ScraperConfig, load_config
-from scraper.fetch import HtmlFetcher, fetch_html
-from scraper.text import HtmlPreprocessor, html_to_text
-from scraper.types import WebScrapeResult
-from scraper.writer import ScrapeWriter, write_scrape_outputs
+from auto_prompt.scraper.config import ScraperConfig, load_config
+from auto_prompt.scraper.fetch import HtmlFetcher, fetch_html
+from auto_prompt.preprocessing.preprocessing import HtmlPreprocessor, html_to_text
+from auto_prompt.scraper.types import WebScrapeResult
+from auto_prompt.scraper.writer import ScrapeWriter, write_scrape_outputs
 
 
 class WebScraper:

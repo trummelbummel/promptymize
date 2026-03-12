@@ -6,8 +6,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from scraper.paths import resolve_output_dir
-from scraper.types import WebScrapeResult
+from auto_prompt.scraper.paths import resolve_output_dir
+from auto_prompt.scraper.types import WebScrapeResult
 
 
 class ScrapeWriter:

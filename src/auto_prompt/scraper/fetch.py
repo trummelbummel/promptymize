@@ -4,7 +4,7 @@ from typing import Final
 
 import requests
 
-from scraper.text import HtmlPreprocessor, html_to_text
+from auto_prompt.preprocessing.preprocessing import HtmlPreprocessor, html_to_text
 
 USER_AGENT: Final = "auto-prompt-web-scraper/0.0.1 (+https://github.com/trummelbummel/auto-prompt)"
 

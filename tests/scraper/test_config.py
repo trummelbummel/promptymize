@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from scraper.config import load_config
+from auto_prompt.scraper.config import load_config
 
 
 def test_load_config_parses_targets(tmp_path: Path) -> None:
