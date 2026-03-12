@@ -18,9 +18,7 @@ test: ## Test the code with pytest
 	@echo "🚀 Testing code: Running pytest"
 	@uv run python -m pytest --doctest-modules
 
-.PHONY: scrape
-scrape: ## Scrape a documentation page to resources/<folder>
-	@uv run auto-prompt-scrape "$(URL)" "$(FOLDER)"
+
 
 .PHONY: scrape-batch
 scrape-batch: ## Batch scrape from YAML config: make scrape-batch CONFIG=scraper_targets.yaml
