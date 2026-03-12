@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import pytest
-
 from auto_prompt.scraper.paths import resolve_output_dir, sanitize_folder_name
 
 

@@ -107,7 +107,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "one":
         result = write_scrape(url=args.url, folder_name=args.folder_name, out_root=out_root, render_js=render_js)
-        print(str(result.output_dir))
+        print(result.output_dir)
         return 0
 
     config = load_config(Path(args.config))

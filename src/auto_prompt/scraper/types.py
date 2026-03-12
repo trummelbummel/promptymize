@@ -11,7 +11,7 @@ class WebScrapeResult:
     :param url: The scraped URL.
     :param folder_name: Logical folder name for this target.
     :param output_dir: Directory containing this target's outputs.
-    :param markdown_path: Path to the text-only markdown file.
+    :param markdown_path: Path to the Markdown content file.
     :param html_path: Path to the saved source HTML file.
     :param meta_path: Path to the metadata JSON file.
     """
