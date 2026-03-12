@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
+from typing import Any
 
 import yaml
 
@@ -12,17 +13,21 @@ _SLUG_RE = re.compile(r"[^a-zA-Z0-9]+")
 
 @dataclass(frozen=True)
 class ScrapeTarget:
+    """A single URL to scrape and the folder it should be written into."""
+
     folder_name: str
     url: str
 
 
 @dataclass(frozen=True)
 class ScraperConfig:
+    """Collection of scrape targets parsed from a YAML config file."""
+
     targets: list[ScrapeTarget]
 
 
 def _slug_from_url(url: str) -> str:
-    """Derive a short filesystem-safe slug from a URL path."""
+    """Derive a short filesystem-safe slug from the last path segment of ``url``."""
 
     parsed = urlparse(url)
     path = parsed.path.strip("/")
@@ -31,6 +36,34 @@ def _slug_from_url(url: str) -> str:
     last_segment = path.rsplit("/", 1)[-1]
     slug = _SLUG_RE.sub("_", last_segment).strip("_").lower()
     return slug or "page"
+
+
+def _parse_target(index: int, item: dict[str, Any]) -> list[ScrapeTarget]:
+    """Validate and expand a single raw target entry into one or more :class:`ScrapeTarget`."""
+
+    folder_name = item.get("folder_name")
+    if not isinstance(folder_name, str) or not folder_name.strip():
+        msg = f"targets[{index}].folder_name must be a non-empty string"
+        raise ValueError(msg)
+
+    folder_name = folder_name.strip()
+    url = item.get("url")
+
+    if isinstance(url, str) and url.strip():
+        return [ScrapeTarget(folder_name=folder_name, url=url.strip())]
+
+    if isinstance(url, list):
+        targets: list[ScrapeTarget] = []
+        for j, u in enumerate(url):
+            if not isinstance(u, str) or not u.strip():
+                msg = f"targets[{index}].url[{j}] must be a non-empty string"
+                raise ValueError(msg)
+            slug = _slug_from_url(u.strip())
+            targets.append(ScrapeTarget(folder_name=f"{folder_name}/{slug}", url=u.strip()))
+        return targets
+
+    msg = f"targets[{index}].url must be a non-empty string or list of strings"
+    raise ValueError(msg)
 
 
 def load_config(path: Path) -> ScraperConfig:
@@ -56,26 +89,7 @@ def load_config(path: Path) -> ScraperConfig:
         if not isinstance(item, dict):
             msg = f"targets[{i}] must be a mapping"
             raise ValueError(msg)
-
-        folder_name = item.get("folder_name")
-        if not isinstance(folder_name, str) or not folder_name.strip():
-            msg = f"targets[{i}].folder_name must be a non-empty string"
-            raise ValueError(msg)
-
-        url = item.get("url")
-        if isinstance(url, str) and url.strip():
-            targets.append(ScrapeTarget(folder_name=folder_name.strip(), url=url.strip()))
-        elif isinstance(url, list):
-            for j, u in enumerate(url):
-                if not isinstance(u, str) or not u.strip():
-                    msg = f"targets[{i}].url[{j}] must be a non-empty string"
-                    raise ValueError(msg)
-                slug = _slug_from_url(u.strip())
-                sub_folder = f"{folder_name.strip()}/{slug}"
-                targets.append(ScrapeTarget(folder_name=sub_folder, url=u.strip()))
-        else:
-            msg = f"targets[{i}].url must be a non-empty string or list of strings"
-            raise ValueError(msg)
+        targets.extend(_parse_target(i, item))
 
     return ScraperConfig(targets=targets)
 

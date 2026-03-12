@@ -4,11 +4,11 @@ import argparse
 import sys
 from pathlib import Path
 
+from auto_prompt.preprocessing.preprocessing import HtmlPreprocessor
 from auto_prompt.scraper.config import ScraperConfig, load_config
-from auto_prompt.scraper.fetch import HtmlFetcher, fetch_html
-from auto_prompt.preprocessing.preprocessing import HtmlPreprocessor, html_to_text
+from auto_prompt.scraper.fetch import HtmlFetcher
 from auto_prompt.scraper.types import WebScrapeResult
-from auto_prompt.scraper.writer import ScrapeWriter, write_scrape_outputs
+from auto_prompt.scraper.writer import ScrapeWriter
 
 
 class WebScraper:
@@ -33,7 +33,7 @@ class WebScraper:
         out_root: Path,
         render_js: bool = True,
     ) -> WebScrapeResult:
-        """Scrape a single URL into ``out_root``."""
+        """Scrape a single URL and persist results under ``out_root``."""
 
         html = self._fetcher.fetch_html(url=url, render_js=render_js)
         md = self._preprocessor.html_to_markdown(html)
@@ -49,13 +49,17 @@ class WebScraper:
         """Scrape all targets defined in ``config``, skipping failures."""
 
         results: list[WebScrapeResult] = []
-        for t in config.targets:
+        for target in config.targets:
             try:
-                results.append(
-                    self.write_scrape(url=t.url, folder_name=t.folder_name, out_root=out_root, render_js=render_js),
+                result = self.write_scrape(
+                    url=target.url,
+                    folder_name=target.folder_name,
+                    out_root=out_root,
+                    render_js=render_js,
                 )
+                results.append(result)
             except Exception as exc:  # noqa: BLE001
-                print(f"SKIP {t.url} ({t.folder_name}): {exc}", file=sys.stderr)
+                print(f"SKIP {target.url} ({target.folder_name}): {exc}", file=sys.stderr)
         return results
 
 
@@ -63,25 +67,22 @@ _DEFAULT_SCRAPER = WebScraper()
 
 
 def write_scrape(*, url: str, folder_name: str, out_root: Path, render_js: bool = True) -> WebScrapeResult:
-    """Convenience wrapper around :class:`WebScraper` for callers."""
+    """Convenience wrapper around :meth:`WebScraper.write_scrape`."""
 
-    return _DEFAULT_SCRAPER.write_scrape(
-        url=url,
-        folder_name=folder_name,
-        out_root=out_root,
-        render_js=render_js,
-    )
+    return _DEFAULT_SCRAPER.write_scrape(url=url, folder_name=folder_name, out_root=out_root, render_js=render_js)
 
 
 def scrape_from_config(config: ScraperConfig, *, out_root: Path, render_js: bool = True) -> list[WebScrapeResult]:
-    """Convenience wrapper around :class:`WebScraper` for callers."""
+    """Convenience wrapper around :meth:`WebScraper.scrape_from_config`."""
 
     return _DEFAULT_SCRAPER.scrape_from_config(config, out_root=out_root, render_js=render_js)
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(description="Web scrape to resources/context/<folder_name>/")
-    sub = p.add_subparsers(dest="cmd", required=True)
+    """Build the CLI argument parser for ``auto-prompt-web-scrape``."""
+
+    parser = argparse.ArgumentParser(description="Web scrape to resources/context/<folder_name>/")
+    sub = parser.add_subparsers(dest="cmd", required=True)
 
     one = sub.add_parser("one", help="Scrape a single URL")
     one.add_argument("url")
@@ -94,10 +95,12 @@ def build_parser() -> argparse.ArgumentParser:
     batch.add_argument("--out-root", default="resources/context")
     batch.add_argument("--no-render-js", action="store_true")
 
-    return p
+    return parser
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Entry point for the ``auto-prompt-web-scrape`` CLI."""
+
     args = build_parser().parse_args(argv)
     out_root = Path(args.out_root)
     render_js = not args.no_render_js
@@ -109,7 +112,8 @@ def main(argv: list[str] | None = None) -> int:
 
     config = load_config(Path(args.config))
     results = scrape_from_config(config, out_root=out_root, render_js=render_js)
-    print("\n".join(str(r.output_dir) for r in results))
+    for result in results:
+        print(result.output_dir)
     return 0
 
 

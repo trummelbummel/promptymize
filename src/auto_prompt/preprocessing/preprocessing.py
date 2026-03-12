@@ -1,7 +1,26 @@
 from __future__ import annotations
 
+import re
+
 from bs4 import BeautifulSoup, Tag
 from markdownify import markdownify as html_to_md
+
+_HEADER_RE = re.compile(r"(?=^#{1,6}\s)", re.MULTILINE)
+
+_NOISE_SELECTORS = (
+    "script",
+    "style",
+    "noscript",
+    "svg",
+    "header",
+    "footer",
+    "nav",
+    "aside",
+    "form",
+    '[aria-hidden="true"]',
+)
+
+_MAIN_SELECTORS = ("main", "article", '[role="main"]', "body")
 
 
 class HtmlPreprocessor:
@@ -13,7 +32,9 @@ class HtmlPreprocessor:
     """
 
     def _pick_main_container(self, soup: BeautifulSoup) -> Tag:
-        for selector in ("main", "article", '[role="main"]', "body"):
+        """Return the first matching main-content container from ``soup``."""
+
+        for selector in _MAIN_SELECTORS:
             el = soup.select_one(selector)
             if isinstance(el, Tag):
                 return el
@@ -21,27 +42,24 @@ class HtmlPreprocessor:
         raise ValueError(msg)
 
     def _strip_noise(self, container: Tag) -> None:
-        for selector in (
-            "script",
-            "style",
-            "noscript",
-            "svg",
-            "header",
-            "footer",
-            "nav",
-            "aside",
-            "form",
-            '[aria-hidden="true"]',
-        ):
+        """Remove non-content elements (scripts, nav, etc.) from ``container``."""
+
+        for selector in _NOISE_SELECTORS:
             for el in list(container.select(selector)):
                 el.decompose()
 
-    def html_to_text(self, html: str) -> str:
-        """Convert ``html`` into a normalized plain-text representation."""
+    def _clean_container(self, html: str) -> Tag:
+        """Parse ``html``, locate the main container, and strip noise."""
 
         soup = BeautifulSoup(html, "html.parser")
         container = self._pick_main_container(soup)
         self._strip_noise(container)
+        return container
+
+    def html_to_text(self, html: str) -> str:
+        """Convert ``html`` into a normalized plain-text representation."""
+
+        container = self._clean_container(html)
         text = container.get_text(separator="\n", strip=True)
         lines = [line.strip() for line in text.splitlines()]
         collapsed: list[str] = []
@@ -56,12 +74,16 @@ class HtmlPreprocessor:
     def html_to_markdown(self, html: str) -> str:
         """Convert ``html`` into a normalized Markdown representation."""
 
-        soup = BeautifulSoup(html, "html.parser")
-        container = self._pick_main_container(soup)
-        self._strip_noise(container)
+        container = self._clean_container(html)
         md = html_to_md(str(container), heading_style="ATX", code_language_callback=lambda _: "")
-        md = md.replace("\r\n", "\n").strip() + "\n"
-        return md
+        return md.replace("\r\n", "\n").strip() + "\n"
+
+    @staticmethod
+    def split_on_headers(markdown: str) -> list[str]:
+        """Split ``markdown`` into sections, cutting before each header line (``# …``)."""
+
+        sections = _HEADER_RE.split(markdown)
+        return [s.strip() for s in sections if s.strip()]
 
 
 _DEFAULT_PREPROCESSOR = HtmlPreprocessor()

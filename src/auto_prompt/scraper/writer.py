@@ -11,7 +11,7 @@ from auto_prompt.scraper.types import WebScrapeResult
 
 
 class ScrapeWriter:
-    """Persist scrape results and return descriptors."""
+    """Persist scrape artefacts (Markdown, HTML, metadata) to disk."""
 
     def write(
         self,
@@ -22,10 +22,10 @@ class ScrapeWriter:
         text: str,
         out_root: Path,
     ) -> WebScrapeResult:
-        """Persist scrape result under ``out_root`` and return a descriptor."""
+        """Write ``text`` and ``html`` under ``out_root/<folder_name>/`` and return a descriptor."""
 
-        out_root_resolved = out_root.resolve()
-        output_dir = resolve_output_dir(out_root=out_root_resolved, folder_name=folder_name)
+        resolved_root = out_root.resolve()
+        output_dir = resolve_output_dir(out_root=resolved_root, folder_name=folder_name)
         output_dir.mkdir(parents=True, exist_ok=True)
 
         markdown_path = output_dir / "page.md"
@@ -41,8 +41,8 @@ class ScrapeWriter:
             "scraped_at": datetime.now(tz=timezone.utc).isoformat(),
             "hostname": urlparse(url).hostname,
             "output": {
-                "markdown": str(markdown_path.relative_to(out_root_resolved)),
-                "html": str(html_path.relative_to(out_root_resolved)),
+                "markdown": str(markdown_path.relative_to(resolved_root)),
+                "html": str(html_path.relative_to(resolved_root)),
             },
         }
         meta_path.write_text(json.dumps(meta, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -68,7 +68,7 @@ def write_scrape_outputs(
     text: str,
     out_root: Path,
 ) -> WebScrapeResult:
-    """Convenience wrapper around :class:`ScrapeWriter` for callers."""
+    """Convenience wrapper around :meth:`ScrapeWriter.write`."""
 
     return _DEFAULT_WRITER.write(url=url, folder_name=folder_name, html=html, text=text, out_root=out_root)
 
