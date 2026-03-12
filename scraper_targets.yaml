@@ -1,0 +1,3 @@
+targets:
+  - folder_name: claude_prompting_best_practices
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
