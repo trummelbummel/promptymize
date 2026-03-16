@@ -12,7 +12,13 @@ from auto_prompt.scraper.writer import ScrapeWriter
 
 
 class WebScraper:
-    """High-level web scraper orchestrating fetch, preprocess and write steps."""
+    """
+    High-level web scraper orchestrating fetch, preprocess and write steps.
+
+    :param fetcher: Optional HTML fetcher to use instead of the default.
+    :param preprocessor: Optional HTML preprocessor used to normalize content.
+    :param writer: Optional writer responsible for persisting scrape artefacts.
+    """
 
     def __init__(
         self,
@@ -33,7 +39,15 @@ class WebScraper:
         out_root: Path,
         render_js: bool = True,
     ) -> WebScrapeResult:
-        """Scrape a single URL and persist results under ``out_root``."""
+        """
+        Scrape a single URL and persist results under ``out_root``.
+
+        :param url: The URL to scrape.
+        :param folder_name: Logical folder name used to determine the output path.
+        :param out_root: Root directory under which all scrape outputs are written.
+        :param render_js: When ``True``, allow JS rendering fallback for dynamic sites.
+        :return: Descriptor describing the written artefacts for this scrape.
+        """
 
         html = self._fetcher.fetch_html(url=url, render_js=render_js)
         md = self._preprocessor.html_to_markdown(html)
@@ -46,7 +60,14 @@ class WebScraper:
         out_root: Path,
         render_js: bool = True,
     ) -> list[WebScrapeResult]:
-        """Scrape all targets defined in ``config``, skipping failures."""
+        """
+        Scrape all targets defined in ``config``, skipping failures.
+
+        :param config: Scraper configuration containing one or more targets.
+        :param out_root: Root directory under which all scrape outputs are written.
+        :param render_js: When ``True``, allow JS rendering fallback for dynamic sites.
+        :return: List of descriptors for all successfully scraped targets.
+        """
 
         results: list[WebScrapeResult] = []
         for target in config.targets:
@@ -67,19 +88,38 @@ _DEFAULT_SCRAPER = WebScraper()
 
 
 def write_scrape(*, url: str, folder_name: str, out_root: Path, render_js: bool = True) -> WebScrapeResult:
-    """Convenience wrapper around :meth:`WebScraper.write_scrape`."""
+    """
+    Scrape a single URL and persist results using the default scraper instance.
+
+    :param url: The URL to scrape.
+    :param folder_name: Logical folder name used to determine the output path.
+    :param out_root: Root directory under which all scrape outputs are written.
+    :param render_js: When ``True``, allow JS rendering fallback for dynamic sites.
+    :return: Descriptor describing the written artefacts for this scrape.
+    """
 
     return _DEFAULT_SCRAPER.write_scrape(url=url, folder_name=folder_name, out_root=out_root, render_js=render_js)
 
 
 def scrape_from_config(config: ScraperConfig, *, out_root: Path, render_js: bool = True) -> list[WebScrapeResult]:
-    """Convenience wrapper around :meth:`WebScraper.scrape_from_config`."""
+    """
+    Scrape all targets from a configuration using the default scraper instance.
+
+    :param config: Scraper configuration containing one or more targets.
+    :param out_root: Root directory under which all scrape outputs are written.
+    :param render_js: When ``True``, allow JS rendering fallback for dynamic sites.
+    :return: List of descriptors for all successfully scraped targets.
+    """
 
     return _DEFAULT_SCRAPER.scrape_from_config(config, out_root=out_root, render_js=render_js)
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Build the CLI argument parser for ``auto-prompt-web-scrape``."""
+    """
+    Build the CLI argument parser for ``auto-prompt-web-scrape``.
+
+    :return: Configured :class:`argparse.ArgumentParser` instance.
+    """
 
     parser = argparse.ArgumentParser(description="Web scrape to resources/context/<folder_name>/")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -99,7 +139,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Entry point for the ``auto-prompt-web-scrape`` CLI."""
+    """
+    Entry point for the ``auto-prompt-web-scrape`` CLI.
+
+    :param argv: Optional explicit argument list; defaults to ``sys.argv[1:]``.
+    :return: Process exit code, ``0`` on success.
+    """
 
     args = build_parser().parse_args(argv)
     out_root = Path(args.out_root)

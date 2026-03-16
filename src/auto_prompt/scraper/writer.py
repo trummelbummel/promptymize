@@ -11,7 +11,11 @@ from auto_prompt.scraper.types import WebScrapeResult
 
 
 class ScrapeWriter:
-    """Persist scrape artefacts (Markdown, HTML, metadata) to disk."""
+    """
+    Persist scrape artefacts (Markdown, HTML, metadata) to disk.
+
+    Instances of this class are stateless and can be reused safely.
+    """
 
     def write(
         self,
@@ -22,7 +26,16 @@ class ScrapeWriter:
         text: str,
         out_root: Path,
     ) -> WebScrapeResult:
-        """Write ``text`` and ``html`` under ``out_root/<folder_name>/`` and return a descriptor."""
+        """
+        Write ``text`` and ``html`` under ``out_root/<folder_name>/`` and return a descriptor.
+
+        :param url: URL that was scraped.
+        :param folder_name: Logical folder name used to determine the output path.
+        :param html: Raw HTML content to persist.
+        :param text: Normalized text or Markdown representation to persist.
+        :param out_root: Root directory under which all scrape outputs are written.
+        :return: Descriptor describing the written artefacts for this scrape.
+        """
 
         resolved_root = out_root.resolve()
         output_dir = resolve_output_dir(out_root=resolved_root, folder_name=folder_name)
@@ -68,7 +81,16 @@ def write_scrape_outputs(
     text: str,
     out_root: Path,
 ) -> WebScrapeResult:
-    """Convenience wrapper around :meth:`ScrapeWriter.write`."""
+    """
+    Persist scrape artefacts using the shared default :class:`ScrapeWriter`.
+
+    :param url: URL that was scraped.
+    :param folder_name: Logical folder name used to determine the output path.
+    :param html: Raw HTML content to persist.
+    :param text: Normalized text or Markdown representation to persist.
+    :param out_root: Root directory under which all scrape outputs are written.
+    :return: Descriptor describing the written artefacts for this scrape.
+    """
 
     return _DEFAULT_WRITER.write(url=url, folder_name=folder_name, html=html, text=text, out_root=out_root)
 

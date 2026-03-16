@@ -13,7 +13,12 @@ _SLUG_RE = re.compile(r"[^a-zA-Z0-9]+")
 
 @dataclass(frozen=True)
 class ScrapeTarget:
-    """A single URL to scrape and the folder it should be written into."""
+    """
+    A single URL to scrape and the folder it should be written into.
+
+    :param folder_name: Logical folder name under the scrape root.
+    :param url: The URL that should be scraped.
+    """
 
     folder_name: str
     url: str
@@ -21,13 +26,22 @@ class ScrapeTarget:
 
 @dataclass(frozen=True)
 class ScraperConfig:
-    """Collection of scrape targets parsed from a YAML config file."""
+    """
+    Collection of scrape targets parsed from a YAML config file.
+
+    :param targets: List of individual scrape targets.
+    """
 
     targets: list[ScrapeTarget]
 
 
 def _slug_from_url(url: str) -> str:
-    """Derive a short filesystem-safe slug from the last path segment of ``url``."""
+    """
+    Derive a short filesystem-safe slug from the last path segment of ``url``.
+
+    :param url: URL whose path should be converted into a slug.
+    :return: Lowercase slug suitable for use in directory names.
+    """
 
     parsed = urlparse(url)
     path = parsed.path.strip("/")
@@ -39,7 +53,14 @@ def _slug_from_url(url: str) -> str:
 
 
 def _parse_target(index: int, item: dict[str, Any]) -> list[ScrapeTarget]:
-    """Validate and expand a single raw target entry into one or more :class:`ScrapeTarget`."""
+    """
+    Validate and expand a single raw target entry into one or more :class:`ScrapeTarget`.
+
+    :param index: Index of the target in the raw ``targets`` list (for error messages).
+    :param item: Raw mapping describing a single target.
+    :return: One or more validated :class:`ScrapeTarget` instances.
+    :raises ValueError: If required fields are missing or of the wrong type.
+    """
 
     folder_name = item.get("folder_name")
     if not isinstance(folder_name, str) or not folder_name.strip():
@@ -72,6 +93,10 @@ def load_config(path: Path) -> ScraperConfig:
     ``url`` may be a single string or a list of strings. When a list is given
     each URL becomes its own :class:`ScrapeTarget` placed under
     ``<folder_name>/<slug>`` so that files don't overwrite each other.
+
+    :param path: Path to the YAML configuration file.
+    :return: Parsed configuration describing all scrape targets.
+    :raises ValueError: If the file contents do not match the expected schema.
     """
 
     raw = yaml.safe_load(path.read_text(encoding="utf-8"))
