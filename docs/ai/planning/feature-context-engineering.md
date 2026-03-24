@@ -10,32 +10,40 @@ feature: context-engineering
 ## Milestones
 **What are the major checkpoints?**
 
-- [ ] **M1:** Requirements reviewed (`/review-requirements`).
-- [ ] **M2:** Design locked (dedupe semantics, file outputs) (`/review-design`).
-- [ ] **M3:** Implementation + tests for summarization + dedupe pipeline.
-- [ ] **M4:** Sample end-to-end run on a subset of `resources/data` Markdown.
+- [x] **M1:** Requirements reviewed (`/review-requirements`).
+- [x] **M2:** Design locked — merge into ``prompt_methods_context.md``, exact + optional LM dedupe.
+- [x] **M3:** Implementation + tests for summarization + dedupe pipeline (``src/auto_prompt/promptymization/``).
+- [ ] **M4:** Optional manual smoke on real `sources/data` Markdown (needs scrape or hand-placed ``.md``).
+- [x] **M5:** **Stepwise-evaluation** hook — ``build_context(emit_context_engineering_eval=…)``, CLI ``--eval`` / env ``AUTO_PROMPT_CONTEXT_EVAL`` (see **stepwise-evaluation** package).
 
 ## Task Breakdown
 **What specific work needs to be done?**
 
 ### Phase 1: Foundation
-- [ ] Task 1.1: Inventory existing modules: `context_generation_modules.py`, `dspy_modules` / `TextSummarizer`, `DeduplicatePromptSection`.
-- [ ] Task 1.2: Define canonical **output path** and naming (`resources/data/context/`, non-destructive writes).
+- [x] Task 1.1: Inventory existing modules: `context_generation.py` (orchestrator), `dspy_modules` / ``PromptMethodSummarizer``, `DeduplicatePromptSection`.
+- [x] Task 1.2: Canonical **output path** — ``sources/data/context/prompt_methods_context.md`` (**merge-latest** into one file).
 
 ### Phase 2: Core Features
-- [ ] Task 2.1: Tighten **summarization signature** prompts for “one method per header, bullets as rules.”
-- [ ] Task 2.2: Implement **orchestrator** that reads all scraper `.md` files and aggregates through dedupe.
-- [ ] Task 2.3: Ensure **no duplicate headers/bullets** per acceptance criteria (exact + LM-assisted as designed).
+- [x] Task 2.1: Tighten **summarization signature** — ``SummarizePromptMethods`` in ``dspy_modules.py`` (structured instructions: ``##`` per method, bullet rules).
+- [x] Task 2.2: Implement **orchestrator** — ``PromptMethodsContext`` in ``context_generation.py`` reads ``sources/data/**/*.md`` (excludes ``processed``/``context``), summarizes, moves folders to ``processed``, **merges** into ``sources/data/context/prompt_methods_context.md``.
+- [x] Task 2.3: **Exact** deduplication via ``exact_dedupe_prompt_method_markdown`` (`dedupe_markdown.py`); optional **LM-assisted** incremental path via ``incremental_deduplicator`` constructor arg.
 
 ### Phase 3: Integration & Polish
-- [ ] Task 3.1: Document how to run the pipeline (Makefile or `python -m` entry).
-- [ ] Task 3.2: Add fixtures + tests (mocked DSPy).
+- [x] Task 3.1: Run pipeline via ``make build-context`` or ``uv run auto-prompt-build-context`` (see ``cli.py``, ``pyproject.toml`` `[project.scripts]`).
+- [x] Task 3.2: Tests — ``tests/promptymization/test_context_generation.py``, ``test_dedupe_markdown.py`` (mocked summarizer); extend when adding LM integration tests.
+
+### Phase 4: Evaluation integration (with stepwise-evaluation)
+- [x] Task 4.1: **Optional** eval mode on ``PromptMethodsContext.build_context`` + CLI (``--eval``, ``AUTO_PROMPT_CONTEXT_EVAL``) invoking ``auto_prompt.evaluation`` after merge.
+- [x] Task 4.2: **EvalRecord** payloads via ``build_context_engineering_record`` (source paths, SHA-256, excerpt).
+- [x] Task 4.3: **Fail-fast** via ``ConfigurationError`` when eval on but ``BRAINTRUST_API_KEY`` missing; default **off**.
+- [x] Task 4.4: **tests/evaluation/** mocks Braintrust; no network in CI.
 
 ## Dependencies
 **What needs to happen in what order?**
 
 - Dedupe behavior depends on summarization output shape (headers/sections stable).
 - Scraper feature (`prompt-method-scraper`) provides inputs but context-engineering can be tested with fixture `.md` files.
+- **stepwise-evaluation** (Braintrust SDK + registry) is a **dependency for Phase 4** only; core merge pipeline stays usable without it.
 
 ## Timeline & Estimates
 **When will things be done?**
@@ -51,4 +59,4 @@ feature: context-engineering
 ## Resources Needed
 **What do we need to succeed?**
 
-- DSPy + LM access; sample `resources/data` Markdown for integration smoke tests.
+- DSPy + LM access; sample `sources/data` Markdown for integration smoke tests.

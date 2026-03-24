@@ -1,0 +1,8 @@
+graph TD
+  API[PromptScorer facade] --> Stepwise[stepwise-evaluation Braintrust]
+  API --> CtxMD[sources/data/context/prompt_methods_context.md]
+  CtxMD --> API
+  API --> Data[Dataset adapter optional]
+  Stepwise --> Out[Score result plus explanation + runs in Braintrust]
+  API --> Cmp[compare: before after delta]
+  Cmp --> UI[REST UI may trigger scorer thus Braintrust]

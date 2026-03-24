@@ -1,7 +1,7 @@
 ---
 phase: design
 title: System Design — prompt-method-scraper
-description: Architecture for config-driven scraping into resources/data as Markdown
+description: Architecture for config-driven scraping into sources/data as Markdown
 feature: prompt-method-scraper
 ---
 
@@ -18,29 +18,39 @@ graph TD
   Orchestrator --> HTML[HTML to Markdown]
   Orchestrator --> Arxiv[arXiv handler]
   Orchestrator --> PDF[PDF text extraction]
-  HTML --> Storage[(resources/data)]
+  HTML --> Storage[(sources/data)]
   Arxiv --> Storage
   PDF --> Storage
-  Orchestrator --> Meta[Sidecar metadata optional]
-  Meta --> Storage
 ```
 
-- **Config loader:** reads `scraper_targets.yaml`, resolves `folder_name` → base path under `resources/data`.
+- **Implementation:** concrete modules in ``auto_prompt.scraper`` (e.g. ``config``, ``fetch``, ``web_scraper``, ``writer``, ``paths``) with tests; **must** be runnable end-to-end from the repo.
+- **Config loader:** reads `scraper_targets.yaml`, resolves `folder_name` → base path under `sources/data`.
 - **Orchestrator:** dispatches each URL to the right handler (blog/HTML, arXiv, PDF).
-- **Storage:** writes Markdown (and optional JSON/metadata) under `resources/data/<folder_name>/...`.
+- **Storage:** writes **only** **`.md`** files under `sources/data/<sanitized_folder_path>/...` (YAML `folder_name` segments passed through ``sanitize_folder_name`` / ``resolve_output_dir``; all normalized content as Markdown; no required non-Markdown artifacts).
 
 ## Data Models
 **What data do we need to manage?**
 
 - **Target:** `folder_name`, list of `url` strings (existing YAML shape; extend if needed for type hints or options).
-- **Artifact:** Markdown file(s), optional `meta.json` (URL, fetched_at, content_type, source).
-- **Paths:** stable relative paths from `resources/data` for reproducibility.
+- **Artifact:** Markdown file(s) **only** (e.g. one ``.md`` per logical page/URL per layout decision).
+- **Paths:** stable relative paths from `sources/data` for reproducibility.
 
 ## API Design
 **How do components communicate?**
 
 - **Internal:** Python functions/classes (e.g. existing `scraper` package); single public “run scrape” entry for CLI/Makefile.
 - **External:** HTTP(S) only; no new public HTTP API for this feature.
+
+## Error contract
+
+| Exception | When |
+|-----------|------|
+| ``ConfigurationError`` | Invalid or missing YAML; unresolvable output root |
+| ``ValidationError`` | Malformed target entry |
+| ``ScrapeTargetError`` | One URL failed (URL, HTTP status, message); orchestrator may continue with other URLs |
+| ``DependencyUnavailableError`` | Persistent network/DNS failure affecting the whole run |
+
+CLI **exit codes:** non-zero if **any** URL failed or config invalid; document partial success (e.g. summary “3/5 ok”) on stderr or structured log.
 
 ## Component Breakdown
 **What are the major building blocks?**

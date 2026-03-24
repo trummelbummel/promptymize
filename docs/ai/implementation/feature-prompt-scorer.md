@@ -37,6 +37,8 @@ feature: prompt-scorer
 **How do pieces connect?**
 
 - **`prompt-optimizer-agent`:** imports `PromptScorer` or a thin `score_prompt_tool(...)` wrapper.
+- **`compare`:** return type must include **before**, **after**, **deltas**, and explanations for **REST UI** consumption.
+- **Context path:** default ``sources/data/context/prompt_methods_context.md``; must delegate eval runs to **stepwise-evaluation** (Braintrust). Env vars per **`.env.example`**.
 
 ## Error Handling
 **How do we handle failures?**

@@ -10,7 +10,7 @@ feature: context-engineering
 ## Problem Statement
 **What problem are we solving?**
 
-- Raw **scraper output** (`resources/data/**/*.md`) is verbose and repetitive. Agents that **modify prompts** need a **compact, structured context file** derived from that source text.
+- Raw **scraper output** (`sources/data/**/*.md`) is verbose and repetitive. Agents that **modify prompts** need a **compact, structured context file** derived from that source text.
 - Summaries must be **Markdown with clear structure**: each **header** corresponds to **one prompt method**; **bullet points** encode **actionable rules** for improving prompts.
 - Users need **deduplication**: no repeated headers, no repeated bullets, and **semantically merged** content so the final context file contains **unique prompt-method material** only.
 
@@ -20,11 +20,12 @@ feature: context-engineering
 **What do we want to achieve?**
 
 - **Primary goals**
-  - Provide **DSPy modules** that ingest **source text** (from scraper `.md` files) and produce **structured Markdown** suitable for agent consumption.
+  - Provide **DSPy modules** that ingest **source text** (from scraper `.md` files) and produce **structured Markdown** suitable for agent consumption, using ``PromptMethodSummarizer`` (and related signatures) for per-source summarization.
   - Enforce structure: **one summary block per prompt method** (header naming convention TBD in design), with **bullets as applicable rules**.
   - **Deduplicate** across inputs so the **aggregated context file** has **unique headers and unique bullets** at the level of “same prompt method / same rule.”
 - **Secondary goals**
   - Composable pipeline (summarize → merge/dedupe → write artifact) aligned with existing `promptymization` code.
+  - **Stepwise evaluation during context build:** when users **opt in** (CLI flag, env, or API parameter), the pipeline **invokes stepwise-evaluation** so **`context_engineering`** Braintrust evals can **log or run** against the **inputs and merged output** of that build—**without** going through **prompt-scorer**. Default behavior remains **no** Braintrust (plain merge).
   - Traceability optional later (which source file contributed which method)—non-goal for v1 unless requested.
 - **Non-goals (initial)**
   - Perfect semantic deduplication at corpus scale without LLM calls (heuristics + LM-assisted dedupe as per design).
@@ -36,11 +37,13 @@ feature: context-engineering
 - As a **user**, I want to **summarize source text into structured Markdown** with **headers that each represent one prompt method** and **bullet points that describe the method as rules** so an agent can **apply them to improve a prompt**.
 - As a **user**, I want **no duplication in headers or bullet points** in the final output.
 - As a **user**, I want **deduplicated summaries** so the **context file** contains **only unique content** related to each **prompt method** (no near-duplicate sections).
+- As an **AI engineer**, I want **stepwise-evaluation** to run **during or right after** a **context-engineering** build so I can **regression-test summarization and merge quality** in **Braintrust** the same way as other pipeline steps.
 
 **Workflows**
 
-- Point pipeline at `resources/data` (or a list of `.md` paths), run generation, emit a **single context Markdown file** (or versioned files per existing conventions).
-- Re-run after new scrapes: merge into context without blowing away prior unique content (exact policy: open item).
+- Point pipeline at `sources/data` (scraped **`.md` only**), run generation, and **merge new summaries into the latest** canonical file ``sources/data/context/prompt_methods_context.md`` (dedupe after merge).
+- **Optional:** enable **eval mode** on the same command so **stepwise-evaluation** records or executes **`context_engineering`** evals (requires Braintrust env; see **stepwise-evaluation** requirements).
+- Re-runs **append/merge** into that file; prior unique content is preserved subject to dedupe rules (exact + optional LM-assisted).
 
 **Edge cases**
 
@@ -60,13 +63,13 @@ feature: context-engineering
 **What limitations do we need to work within?**
 
 - **Technical:** Use **DSPy** for LLM-related modules (`pyproject.toml` version); Python codebase patterns (OO, docstrings).
-- **Assumptions:** Scraper output is available as `.md` under `resources/data`; LLM API/config available at runtime for summarization/dedupe signatures.
+- **Assumptions:** Scraper output is available as `.md` under `sources/data`; LLM API/config available at runtime for summarization/dedupe signatures. **Eval mode** additionally assumes **Braintrust** credentials per **`.env.example`** (same as **stepwise-evaluation**).
 
 ## Questions & Open Items
 **What do we still need to clarify?**
 
 - [ ] **Header taxonomy:** fixed levels (`##` only) vs free-form; normalization of method names.
 - [ ] **Dedupe strategy:** exact string only vs embedding/LM “same method” clustering.
-- [ ] **Output location:** `resources/data/context/` vs single canonical filename; interaction with `PromptMethodsContext` and existing movers.
-- [ ] **Incremental updates:** append-only, full rebuild, or merge file each run?
+- [x] **Output location:** canonical **merge-latest** file ``sources/data/context/prompt_methods_context.md`` under data root ``sources/data``. **prompt-optimizer-agent** and **prompt-scorer** load this path when improving or evaluating prompts.
+- [x] **Incremental updates:** **merge into latest** — each pipeline run incorporates new material into ``prompt_methods_context.md`` with deduplication (no requirement for monotonic versioned filenames).
 - [ ] **Ordering** of methods in the final context file (alphabetical, source order, confidence).

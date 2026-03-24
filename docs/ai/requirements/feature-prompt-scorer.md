@@ -10,16 +10,18 @@ feature: prompt-scorer
 ## Problem Statement
 **What problem are we solving?**
 
-- Users need **repeatable, explainable** evaluation of **prompt quality**—not only subjective judgment. The **prompt scorer** applies **scoring functions** to produce **objective measures** (or structured scores) and optionally **compares** two prompt versions (e.g. before vs after optimization).
-- The scorer must be **extensible**: new **scoring functions** can be added where **quality** is defined by the implementer. It should accept **optional data** (a **dataset**) for evaluation modes that need it, but must also work **without a dataset** by using the **context file** that **summarizes prompt methods** (from **context-engineering**) when no data is supplied.
+- Users need **repeatable, explainable** evaluation of **prompt quality**—not only subjective judgment. The **prompt scorer** exposes **score** / **compare** APIs and **must depend on stepwise-evaluation (Braintrust)** for running evals and recording results—**it does not reimplement** Braintrust clients, experiment wiring, or duplicate Braintrust-native scoring flows.
+- **stepwise-evaluation** is the **general** layer: it supports evals for **prompts**, **intermediate pipeline steps** (e.g. context-engineering output), and **end-to-end** traces. **prompt-scorer** is a **caller/adapter** that uses stepwise-evaluation for prompt-focused evals (including **compare**) while reusing the same Braintrust configuration. **context-engineering** may also call **stepwise-evaluation** **directly** during the **CE build** (``context_engineering`` step) when eval mode is on—**not** via **prompt-scorer**.
+- The scorer remains **extensible** at the **policy** level (which eval profiles / step IDs to run, how to map prompts and context into Braintrust rows). It should accept **optional data** (a **dataset**) when provided, and must work **without** a dataset by using the **merged context file** at ``sources/data/context/prompt_methods_context.md`` (from **context-engineering**) when no data is supplied. **Loading this context file is required** for scorer behavior that aligns with prompt methods in production (same file the **prompt-optimizer-agent** uses).
+- **Compare:** ``compare(before, after)`` must expose **both** scores, **both** explanations, and **deltas** for the **user-interface** to render.
 - **Who is affected:** users of **`prompt-optimizer-agent`** (which calls this tool) and any developer integrating scoring into workflows.
 
 ## Goals & Objectives
 **What do we want to achieve?**
 
 - **Primary goals**
-  - Provide an **extensible class** (or small set of classes) that **scores a prompt** using one or more **registered scoring functions**.
-  - Support **objective measures** (numeric scores, rubric dimensions, pass/fail flags—exact shape in design) as output.
+  - Provide a **prompt-scorer** facade that **scores** and **compares** prompts by delegating eval execution to **stepwise-evaluation (Braintrust)** rather than reimplementing platform calls.
+  - Support **objective measures** (numeric scores, rubric dimensions, pass/fail flags—exact shape in design; surfaced from Braintrust / wrapped scorers per design) as output.
   - Support **comparison** between a **previous prompt version** and an **improved** version (side-by-side scores and deltas).
   - Allow the user to **select a method for evaluation** (e.g. evaluate against a specific **prompt method** from the context file, or a named scoring strategy).
   - Support **dataset-based** scoring when a dataset is provided; support **context-only** scoring when **no dataset** is provided (context file suffices).
@@ -28,8 +30,9 @@ feature: prompt-scorer
   - Clear API for **`prompt-optimizer-agent`** and other callers (single entry point for “score this prompt”).
   - Testability: pure scoring logic separable from LLM calls when needed.
 - **Non-goals (initial)**
-  - Defining a single “ground truth” for all domains; **quality** remains **pluggable** per scoring function.
+  - Defining a single “ground truth” for all domains; **quality** remains **pluggable** per eval configuration.
   - Guaranteeing statistical validity of every metric without documented assumptions.
+  - **Latency / SLA** guarantees for eval runs (no committed SLA for scoring or Braintrust round-trips).
 
 ## User Stories & Use Cases
 **How will users interact with the solution?**
@@ -47,7 +50,7 @@ feature: prompt-scorer
 - **Context-only:** `score(prompt, context=..., dataset=None)` → scores + explanations.
 - **With dataset:** `score(prompt, dataset=..., context=...)` → same, possibly richer metrics.
 - **Compare:** `compare(prompt_a, prompt_b, options...)` → per-metric comparison and delta.
-- **Extend:** register `CustomScorer` implementing a documented interface.
+- **Extend:** add **Braintrust** eval definitions or stepwise-evaluation **profiles**—do **not** add a second eval platform inside **prompt-scorer**.
 
 **Edge cases**
 
@@ -66,13 +69,14 @@ feature: prompt-scorer
 ## Constraints & Assumptions
 **What limitations do we need to work within?**
 
-- **Technical:** Python, project style (OO, Sphinx docstrings); align with DSPy only where LLM-based scorers need it.
-- **Assumptions:** Context file path or content is available when using context-only mode; dataset schema agreed per scorer.
+- **Technical:** Python, project style (OO, Sphinx docstrings); **Braintrust** credentials and related settings via **environment variables** documented in **`.env.example`** (and loaded by config as applicable)—see **stepwise-evaluation** requirements.
+- **Assumptions:** Context file at ``sources/data/context/prompt_methods_context.md`` (merge-latest) is available when using context-only mode; dataset schema agreed per eval.
 
 ## Questions & Open Items
 **What do we still need to clarify?**
 
-- [ ] Exact **output schema** (single number vs multi-dimensional rubric).
-- [ ] Whether “**select a method**” means **context section** (prompt method) vs **named scorer**.
-- [ ] **Dataset format** (JSONL, CSV, in-memory list) and required columns per scorer.
+- [ ] Exact **output schema** (single number vs multi-dimensional rubric) mapping from Braintrust responses.
+- [ ] Whether “**select a method**” means **context section** (prompt method) vs **named Braintrust eval** profile.
+- [ ] **Dataset format** (JSONL, CSV, in-memory list) and required columns per eval.
 - [ ] **Objectivity:** which metrics are rule-based vs LLM-judged (and how to label them in explanations).
+- [x] **Dependency:** **prompt-scorer** uses **stepwise-evaluation**; no duplicate Braintrust integration.

@@ -6,8 +6,8 @@ import dspy
 
 from auto_prompt.promptymization.dspy_modules import (
     DeduplicatePromptSection,
+    PromptMethodSummarizer,
     SummarizePromptMethods,
-    TextSummarizer,
 )
 
 
@@ -20,14 +20,14 @@ def test_summarize_prompt_methods_has_expected_fields() -> None:
     assert "summary" in fields
 
 
-# -- TextSummarizer --------------------------------------------------------
+# -- PromptMethodSummarizer ------------------------------------------------
 
 
-def test_text_summarizer_forward_splits_on_headers() -> None:
+def test_prompt_method_summarizer_forward_splits_on_headers() -> None:
     summary_md = "## Overview\nBullet 1\n## Details\nBullet 2"
     mock_prediction = dspy.Prediction(summary=summary_md)
 
-    summarizer = TextSummarizer()
+    summarizer = PromptMethodSummarizer()
     with patch.object(summarizer, "summarize", return_value=mock_prediction) as mock_cot:
         result = summarizer.forward(text="Some long text")
 
@@ -40,11 +40,11 @@ def test_text_summarizer_forward_splits_on_headers() -> None:
     ]
 
 
-def test_text_summarizer_forward_no_headers_returns_single_section() -> None:
+def test_prompt_method_summarizer_forward_no_headers_returns_single_section() -> None:
     summary_md = "Just a plain summary without any headers."
     mock_prediction = dspy.Prediction(summary=summary_md)
 
-    summarizer = TextSummarizer()
+    summarizer = PromptMethodSummarizer()
     with patch.object(summarizer, "summarize", return_value=mock_prediction):
         result = summarizer.forward(text="Input")
 
@@ -52,18 +52,18 @@ def test_text_summarizer_forward_no_headers_returns_single_section() -> None:
     assert result.sections == ["Just a plain summary without any headers."]
 
 
-def test_text_summarizer_forward_empty_summary() -> None:
+def test_prompt_method_summarizer_forward_empty_summary() -> None:
     mock_prediction = dspy.Prediction(summary="")
 
-    summarizer = TextSummarizer()
+    summarizer = PromptMethodSummarizer()
     with patch.object(summarizer, "summarize", return_value=mock_prediction):
         result = summarizer.forward(text="Input")
 
     assert result.sections == []
 
 
-def test_text_summarizer_is_dspy_module() -> None:
-    summarizer = TextSummarizer()
+def test_prompt_method_summarizer_is_dspy_module() -> None:
+    summarizer = PromptMethodSummarizer()
     assert isinstance(summarizer, dspy.Module)
 
 

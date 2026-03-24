@@ -1,0 +1,10 @@
+graph TD
+  Steps[Pipeline steps] --> Adapters[Step adapters / wrappers]
+  Adapters --> BT[Braintrust client required]
+  BT --> DS[Datasets / experiments]
+  UserObs[User observations] --> BuildEval[Eval builders]
+  BuildEval --> DS
+  DS --> Runs[Eval runs + scores]
+  PromptScorer[prompt-scorer facade] --> Stepwise[stepwise-evaluation layer]
+  CtxBuild[context-engineering build] --> Stepwise
+  Stepwise --> Adapters

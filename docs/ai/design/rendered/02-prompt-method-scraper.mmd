@@ -1,0 +1,10 @@
+graph TD
+  YAML[scraper_targets.yaml] --> Config[Config loader / validation]
+  Config --> Orchestrator[Scrape orchestrator]
+  Orchestrator --> Fetch[HTTP fetch layer]
+  Orchestrator --> HTML[HTML to Markdown]
+  Orchestrator --> Arxiv[arXiv handler]
+  Orchestrator --> PDF[PDF text extraction]
+  HTML --> Storage[(sources/data)]
+  Arxiv --> Storage
+  PDF --> Storage

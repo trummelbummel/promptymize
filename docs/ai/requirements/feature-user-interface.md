@@ -12,6 +12,8 @@ feature: user-interface
 
 - Users need a **primary, approachable surface** to work with the **prompt-optimizer agent** and related capabilities (**prompt-scorer**, optional datasets). Today, interaction without a UI is secondary; the **user interface** should be the **main option** for driving the workflow.
 - Users must **compare prompts**, **inspect scores and explanations**, **choose between an old and a newly proposed prompt**, and **upload evaluation data** when available.
+- The backend must **load** the **merged latest** context artifact at ``sources/data/context/prompt_methods_context.md`` for **both** the **prompt-optimizer-agent** and **prompt-scorer** (same file as **context-engineering** output), so proposals and scores stay aligned with prompt methods.
+- The UI may **trigger Braintrust-backed evaluations** by calling **prompt-scorer**, which **delegates** to **stepwise-evaluation** (Braintrust); the REST API does not embed a second Braintrust client for the same use cases.
 
 **Who is affected:** end users improving prompts; anyone who prefers GUI over CLI/API.
 
@@ -27,6 +29,10 @@ feature: user-interface
 - **Secondary goals**
   - Accessible, readable layout for long prompts and explanations.
   - Clear session state: which prompt is “current,” which is “candidate.”
+- **Authentication:** sign-in with **Google**; only authenticated users use the REST API for agent and scoring (except OAuth callback and health checks as needed).
+- **Backend:** **REST API** implements the server (no WebSocket required for MVP).
+- **Comparison view:** when showing **prompt-scorer** ``compare`` results, display **both** prompt versions’ **scores**, **each explanation**, and **deltas** (not scores alone).
+- **Braintrust:** the UI may **trigger Braintrust-backed eval runs** by calling **prompt-scorer** endpoints; **prompt-scorer** delegates to **stepwise-evaluation** (Braintrust). The UI does **not** embed the Braintrust SDK directly.
 - **Non-goals (initial)**
   - Full mobile-native apps (unless web responsive is sufficient).
   - Replacing programmatic APIs for automation (CLI/API may remain for power users).
@@ -62,13 +68,14 @@ feature: user-interface
 **What limitations do we need to work within?**
 
 - **Technical:** Web stack or existing project choice (TBD); must call backend/agent APIs securely.
-- **Assumptions:** Backend exposes stable endpoints for agent turns, scoring, and file upload.
+- **Assumptions:** Backend exposes stable endpoints for agent turns, scoring, and file upload. **Braintrust** configuration for eval flows follows **`.env.example`** on the server; **no SLA** is committed for Braintrust or scorer latency.
 
 ## Questions & Open Items
 **What do we still need to clarify?**
 
 - [ ] **Framework** (web app, desktop, embedded in IDE) and stack.
-- [ ] **Authentication** (single-user local vs multi-user).
+- [x] **Authentication** — **Google OAuth** (see design).
+- [x] **REST** — primary backend transport (see design).
 - [ ] **Dataset** formats and max size for upload.
-- [ ] **Real-time** vs page-refresh interaction model.
+- [ ] **Long-poll / streaming** for chat (optional; REST request/response is baseline).
 - [ ] **Offline** use or online-only.

@@ -1,0 +1,11 @@
+graph TD
+  MD[sources/data/**/*.md] --> Ingest[Read & chunk if needed]
+  Ingest --> Summarize[PromptMethodSummarizer]
+  Summarize --> Sections[Structured Markdown sections per method]
+  Sections --> Dedup[DeduplicatePromptSection or successor]
+  Dedup --> ContextFile[Merge-latest prompt_methods_context.md]
+  Config[dspy settings / LM] --> Summarize
+  Config --> Dedup
+  ContextFile -.->|eval mode optional| Stepwise[stepwise-evaluation]
+  Summarize -.->|per-run metadata| Stepwise
+  Stepwise --> BT[(Braintrust)]

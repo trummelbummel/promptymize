@@ -10,8 +10,8 @@ feature: prompt-method-scraper
 ## Milestones
 **What are the major checkpoints?**
 
-- [ ] **M1:** Requirements signed off (`/review-requirements`).
-- [ ] **M2:** Design agreed (storage layout, arXiv/PDF behavior) (`/review-design`).
+- [x] **M1:** Requirements in repo (Markdown-only persistence, ``sources/data`` layout).
+- [x] **M2:** Design agreed — output **``.md`` only**, nested under ``sources/data/<sanitized_folder_name>/``; merge-latest context is downstream (**context-engineering**).
 - [ ] **M3:** Implementation + tests merged.
 - [ ] **M4:** Smoke run against real `scraper_targets.yaml` (optional, network-dependent).
 
@@ -19,11 +19,11 @@ feature: prompt-method-scraper
 **What specific work needs to be done?**
 
 ### Phase 1: Foundation
-- [ ] Task 1.1: Confirm YAML schema and document it next to `scraper_targets.yaml`.
-- [ ] Task 1.2: Map `folder_name` → `resources/data/<folder_name>` and list existing scraper entrypoints.
+- [x] Task 1.1: YAML schema documented in a header comment atop ``scraper_targets.yaml`` (``folder_name``, ``url`` list).
+- [x] Task 1.2: Map `folder_name` → output under data root — ``auto_prompt.scraper.paths.resolve_output_dir`` + ``sanitize_folder_name`` in ``src/``; default data root ``sources/data``. **Note:** ``tests/scraper/`` not present in repo yet—add when scraper package is restored.
 
 ### Phase 2: Core Features
-- [ ] Task 2.1: Ensure blog/HTML URLs produce Markdown under configured folders.
+- [ ] Task 2.1: **Implement** blog/HTML URL handling → Markdown under configured folders (production code paths, not placeholders).
 - [ ] Task 2.2: arXiv URLs: define and implement abstract vs PDF strategy.
 - [ ] Task 2.3: PDF download + text extraction → Markdown or documented companion format.
 

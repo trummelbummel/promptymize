@@ -10,7 +10,7 @@ feature: prompt-optimizer-agent
 ## Milestones
 **What are the major checkpoints?**
 
-- [ ] **M1:** Requirements reviewed; alignment with **context-engineering** and **`prompt-scorer`** interfaces.
+- [x] **M1:** Requirements in repo; alignment with **context-engineering** (``prompt_methods_context.md`` shipped) and **`prompt-scorer`** / **stepwise-evaluation** when implemented.
 - [ ] **M2:** Design approved (dialogue flow, tool contracts).
 - [ ] **M3:** Agent MVP with mocked LLM + mocked scorer.
 - [ ] **M4:** Integration with real context file + **`prompt-scorer`** when available.
@@ -35,8 +35,8 @@ feature: prompt-optimizer-agent
 ## Dependencies
 **What needs to happen in what order?**
 
-- **context-engineering** produces consumable context files.
-- **`prompt-scorer`** defines tool signature; agent blocked on final scoring UX until API stable.
+- **context-engineering** produces ``sources/data/context/prompt_methods_context.md`` (**implemented**).
+- **`prompt-scorer`** (+ **stepwise-evaluation** / Braintrust) defines tool signature; agent blocked until scorer MVP exists.
 
 ## Timeline & Estimates
 **When will things be done?**

@@ -11,12 +11,12 @@ feature: context-engineering
 **How do we get started?**
 
 - Install dependencies from `pyproject.toml`; configure DSPy LM as for other promptymization modules.
-- Use `resources/data` paths relative to package/project root consistently.
+- Use `sources/data` paths relative to package/project root consistently.
 
 ## Code Structure
 **How is the code organized?**
 
-- **`auto_prompt.promptymization`:** DSPy signatures and modules (`TextSummarizer`, `DeduplicatePromptSection`, `PromptMethodsContext`).
+- **`auto_prompt.promptymization`:** DSPy signatures and modules (``PromptMethodSummarizer``, `DeduplicatePromptSection`, `PromptMethodsContext`).
 - **`auto_prompt.preprocessing`:** shared text/Markdown helpers (`HtmlPreprocessor.split_on_headers`, etc.).
 
 ## Implementation Notes
@@ -25,7 +25,8 @@ feature: context-engineering
 ### Core Features
 - **Summarization:** Output must be parseable into sections (headers + body) for dedupe.
 - **Deduplication:** Reference file grows as novel content is merged; avoid re-processing unchanged sources if optimization added later.
-- **Output:** Never overwrite existing context files without explicit flag; align with “new file per run” if that remains the rule.
+- **Output:** **merge-latest** into ``sources/data/context/prompt_methods_context.md`` (atomic replace + lock per design).
+- **Stepwise (CE phase):** optional flag/env to call **stepwise-evaluation** after a successful merge; **default off** so builds never require Braintrust.
 
 ### Patterns & Best Practices
 - Classes with clear `forward` methods; Sphinx docstrings; tests mock `ChainOfThought` calls.
@@ -33,8 +34,9 @@ feature: context-engineering
 ## Integration Points
 **How do pieces connect?**
 
-- **Upstream:** Markdown from scraper (`resources/data/**/page.md` or equivalent).
-- **Downstream:** Agents read final context Markdown from `resources/data/context/` (or configured path).
+- **Upstream:** Markdown from scraper (`sources/data/**/page.md` or equivalent).
+- **Downstream:** Agents and scorers read ``sources/data/context/prompt_methods_context.md`` (merge-latest; canonical path in design).
+- **Sideward:** **stepwise-evaluation** when eval mode is on (``context_engineering`` step); see **implementation — stepwise-evaluation**.
 
 ## Error Handling
 **How do we handle failures?**

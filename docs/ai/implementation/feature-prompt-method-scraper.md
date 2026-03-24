@@ -1,7 +1,7 @@
 ---
 phase: implementation
 title: Implementation — prompt-method-scraper
-description: Implementation notes for config-driven scraping to resources/data
+description: Implementation notes for config-driven scraping to sources/data
 feature: prompt-method-scraper
 ---
 
@@ -16,15 +16,15 @@ feature: prompt-method-scraper
 ## Code Structure
 **How is the code organized?**
 
-- Prefer extending `auto_prompt.scraper` modules (`config`, `fetch`, `web_scraper`, `writer`, `paths`) rather than new top-level packages unless necessary.
-- `resources/data` layout must match design doc once finalized.
+- **Implement and maintain** the pipeline in ``auto_prompt.scraper`` (``config``, ``fetch``, ``web_scraper``, ``writer``, ``paths``)—this feature is **in-scope** for engineering work, not a stub.
+- `sources/data` layout must match design doc once finalized.
 
 ## Implementation Notes
 **Key technical details to remember:**
 
 ### Core Features
 - **Config:** Load targets from YAML; validate `folder_name` and non-empty URL lists.
-- **Storage:** Write Markdown under `resources/data/<folder_name>/...` per design.
+- **Storage:** Write Markdown under `sources/data/<folder_name>/...` per design.
 - **arXiv / PDF:** Implement in dedicated helpers to keep single responsibility.
 
 ### Patterns & Best Practices
@@ -34,7 +34,7 @@ feature: prompt-method-scraper
 ## Integration Points
 **How do pieces connect?**
 
-- Downstream: `promptymization` / `PromptMethodsContext` expects Markdown under `resources/data`.
+- Downstream: `promptymization` / `PromptMethodsContext` expects Markdown under `sources/data`.
 
 ## Error Handling
 **How do we handle failures?**

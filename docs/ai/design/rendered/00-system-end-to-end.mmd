@@ -1,0 +1,37 @@
+flowchart TB
+  BT[(Braintrust)]
+  Stepwise[stepwise-evaluation]
+
+  subgraph sources["Local / repo storage"]
+    SD[sources/data/**/*.md]
+    PMC[sources/data/context/prompt_methods_context.md]
+  end
+
+  subgraph ingest["Ingestion (offline / CLI)"]
+    YAML[scraper_targets.yaml]
+    Scraper[prompt-method-scraper]
+    CtxEng[context-engineering]
+    YAML --> Scraper
+    Scraper --> SD
+    SD --> CtxEng
+    CtxEng --> PMC
+    CtxEng -.->|eval opt-in| Stepwise
+  end
+
+  subgraph product["Product (authenticated)"]
+    UI[User interface]
+    OAuth[Google OAuth]
+    REST[REST backend]
+    Agent[prompt-optimizer-agent]
+    Scorer[prompt-scorer facade]
+    UI --> OAuth
+    UI --> REST
+    REST --> Agent
+    REST --> Scorer
+    PMC --> Agent
+    PMC --> Scorer
+    Agent --> Scorer
+    Scorer --> Stepwise
+  end
+
+  Stepwise --> BT

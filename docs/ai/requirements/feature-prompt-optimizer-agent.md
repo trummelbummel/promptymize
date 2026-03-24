@@ -15,6 +15,8 @@ feature: prompt-optimizer-agent
 
 **Who is affected:** end users improving prompts; integrators wiring the agent to context files and the scorer tool.
 
+- **Context file dependency:** the agent **must load** the merged latest context artifact at ``sources/data/context/prompt_methods_context.md`` (output of **context-engineering**) to retrieve prompt methods. The same path must be used consistently with **prompt-scorer**.
+
 ## Goals & Objectives
 **What do we want to achieve?**
 

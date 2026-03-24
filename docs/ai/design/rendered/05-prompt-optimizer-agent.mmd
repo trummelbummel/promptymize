@@ -1,0 +1,11 @@
+graph TD
+  User[User] --> Agent[Prompt optimizer agent]
+  Agent --> QA[CO-STAR question flow]
+  CtxFile[sources/data/context/prompt_methods_context.md]
+  CtxFile --> Agent
+  Agent --> Propose[Proposal generator]
+  Propose --> Mix[Method mixing logic]
+  Agent --> Apply[Prompt rewrite / apply rules]
+  Agent --> Scorer[prompt-scorer tool]
+  Scorer --> Scores[Scores pre and post]
+  CtxFile --> Propose

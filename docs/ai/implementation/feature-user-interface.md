@@ -12,6 +12,7 @@ feature: user-interface
 
 - Document Node/Python version and package manager per chosen stack.
 - Run backend locally; point UI `API_BASE_URL` at dev server.
+- Configure **Google OAuth** client ID/secret for the REST API and frontend redirect URIs.
 
 ## Code Structure
 **How is the code organized?**
@@ -24,8 +25,12 @@ feature: user-interface
 
 ### Core Features
 - **Primary:** route `/` or `/app` lands in **agent** flow, not settings.
+- **REST:** all agent and scorer interactions use **REST** JSON endpoints (no WebSocket dependency).
+- **Auth:** protect API routes; only **Google-authenticated** sessions (or valid tokens) may call agent/scorer.
+- **Context:** server loads ``sources/data/context/prompt_methods_context.md`` for agent and scorer (same as design).
+- **Braintrust:** scoring endpoints call **prompt-scorer** only; scorer uses **stepwise-evaluation** (env from **`.env.example`**).
 - **Compare:** bind “Accept new” / “Keep old” to API calls that update session state.
-- **Scores:** render `explanation` field verbatim or structured list; never truncate without “show more.”
+- **Scores:** render **before** and **after** ``ScoreResult`` values and **deltas** from ``ComparisonResult``; render `explanation` per score; never truncate without “show more.”
 - **Upload:** client-side size check + server validation; show parse errors.
 
 ### Patterns & Best Practices

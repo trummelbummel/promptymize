@@ -18,6 +18,16 @@ test: ## Test the code with pytest
 	@echo "🚀 Testing code: Running pytest"
 	@uv run python -m pytest --doctest-modules
 
+.PHONY: build-context
+build-context: ## Merge into sources/data/context/prompt_methods_context.md (see docs/ai/planning/feature-context-engineering.md)
+	@echo "🚀 Building prompt-methods context file"
+	@uv run auto-prompt-build-context
+
+.PHONY: build-context-eval
+build-context-eval: ## Same as build-context, then log context_engineering step to Braintrust (requires BRAINTRUST_API_KEY)
+	@echo "🚀 Building context + Braintrust context_engineering eval"
+	@uv run auto-prompt-build-context --eval
+
 
 
 .PHONY: scrape-batch

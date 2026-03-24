@@ -1,3 +1,9 @@
+# Schema (YAML):
+#   targets: list of target entries
+#   Each entry:
+#     folder_name: str   — subfolder under the scrape output root (e.g. sources/data/<folder_name>)
+#     url: list[str]     — one or more HTTP(S) URLs to fetch for that folder
+#
 targets:
   # Model specific Prompt Engineering Best Practices – Resource List
   - folder_name: claude

@@ -29,7 +29,7 @@ feature: prompt-method-scraper
 ## Integration Tests
 **How do we test component interactions?**
 
-- [ ] End-to-end with temporary `resources/data` dir: one synthetic target, assert file created.
+- [ ] End-to-end with temporary `sources/data` dir: one synthetic target, assert file created.
 - [ ] Failure path: HTTP error logged and run completes or exits per policy.
 
 ## End-to-End Tests

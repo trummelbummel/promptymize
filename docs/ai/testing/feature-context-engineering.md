@@ -16,7 +16,7 @@ feature: context-engineering
 ## Unit Tests
 **What individual components need testing?**
 
-### TextSummarizer / summarization module
+### ``PromptMethodSummarizer`` / summarization module
 - [ ] `forward` returns `summary`, `headers`, `sections` with expected splitting (existing tests; extend if behavior changes).
 - [ ] Empty input / empty summary edge cases.
 
@@ -28,13 +28,15 @@ feature: context-engineering
 
 ### PromptMethodsContext (or orchestrator)
 - [ ] Creates `processed` / `context` dirs as designed.
-- [ ] Does not overwrite existing context files; creates new filename when needed.
+- [ ] **Merge-latest** into ``prompt_methods_context.md`` with lock + atomic replace (see design).
 - [ ] Moves processed folders only once per run (if behavior unchanged).
+- [ ] **Eval mode off:** no Braintrust client imports or network.
+- [ ] **Eval mode on (mocked):** asserts stepwise called once per successful build with ``context_engineering`` StepId.
 
 ## Integration Tests
 **How do we test component interactions?**
 
-- [ ] Temporary directory with fake `resources/data` tree and two `.md` files → single aggregated context file content assertions (mock summarizer/dedupe if needed).
+- [ ] Temporary directory with fake `sources/data` tree and two `.md` files → single aggregated context file content assertions (mock summarizer/dedupe if needed).
 
 ## End-to-End Tests
 **What user flows need validation?**

@@ -12,14 +12,21 @@ feature: user-interface
 
 ```mermaid
 graph TD
-  UI[User interface] --> API[Backend API]
+  UI[User interface] --> API[REST backend API]
+  Google[Google OAuth] --> UI
   API --> Agent[prompt-optimizer-agent]
   API --> Scorer[prompt-scorer]
+  Ctx[sources/data/context/prompt_methods_context.md]
+  Ctx --> Agent
+  Ctx --> Scorer
   API --> Store[Optional file store for uploads]
   Agent --> Scorer
 ```
 
-- **UI** is the **primary** interaction surface; it talks to a **backend** that wraps the **agent** and **scorer**.
+- **UI** is the **primary** interaction surface; it talks to a **REST** backend (no WebSocket requirement for MVP).
+- **Authentication:** users sign in with **Google** (OAuth 2.0); protected routes call the REST API with session/JWT per implementation.
+- **Context file:** backend **loads** ``sources/data/context/prompt_methods_context.md`` into **both** the agent and scorer for each session or request.
+- **Braintrust:** the UI may **trigger** Braintrust-backed evals **through** **prompt-scorer**, which uses **stepwise-evaluation** (single Braintrust integration path).
 - **Uploads** land in **validated storage** (temp or project-scoped) and are passed by reference to scoring.
 
 ## Data Models
@@ -32,20 +39,32 @@ graph TD
 ## API Design
 **How do components communicate?**
 
-- REST or WebSocket for chat turns (TBD).
-- Endpoints sketch:
-  - `POST /session` — start
+- **REST only** for MVP: JSON request/response; long-poll or streaming optional later.
+- Endpoints sketch (all behind **Google-authenticated** sessions except OAuth callback/public health):
+  - `POST /auth/google` / OAuth callback — establish session
+  - `POST /session` — start (server loads context file for agent/scorer)
   - `POST /message` — user message / agent reply
-  - `POST /prompt/compare` — return two versions + scores
-  - `POST /evaluate` — run scorer with optional `dataset_id`
-  - `POST /upload` — dataset file
+  - `POST /evaluate` — run ``prompt-scorer`` (single prompt)
+  - `POST /compare` — run ``PromptScorer.compare``; returns **before score**, **after score**, **explanations**, **deltas** (UI renders all)
+  - `POST /upload` — dataset file for evaluation
+
+**Request alignment with Python APIs**
+
+- Single-prompt eval body should include ``scoring_phase``: ``"before"`` | ``"after"`` when mirroring agent pre/post hooks (same semantics as **prompt-scorer.score**).
+- ``POST /compare`` maps to **prompt-scorer.compare** (no ``scoring_phase`` on the request).
+
+## Error contract
+
+- All error responses use the shared JSON envelope in [README.md](README.md) (``error_code``, ``message``, ``detail``).
+- Map backend exceptions to HTTP status per README; never return Braintrust tokens or stack traces.
+- **409** for context merge contention is rare from REST unless the backend triggers merges; **502** for Braintrust outages during ``/evaluate`` / ``/compare``.
 
 ## Component Breakdown
 **What are the major building blocks?**
 
 - **Chat / agent panel:** messages, CO-STAR prompts.
 - **Prompt editor / diff:** compare old vs new; accept/reject controls.
-- **Score panel:** parallel cards for each version with explanations.
+- **Score panel:** for **compare** flows, show **both** scores, **each explanation**, and **delta** from ``ComparisonResult`` (same data as ``prompt-scorer.compare``).
 - **Upload widget:** drag-drop + validation feedback.
 
 ## Design Decisions

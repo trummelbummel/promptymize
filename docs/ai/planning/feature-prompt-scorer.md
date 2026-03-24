@@ -7,6 +7,8 @@ feature: prompt-scorer
 
 # Project Planning & Task Breakdown
 
+**Implementation note:** **prompt-scorer** is a **facade** only—**Braintrust** calls live in **stepwise-evaluation**. Phase 2 work is “wire prompts/context/datasets into stepwise + map results,” not a separate scorer SDK.
+
 ## Milestones
 **What are the major checkpoints?**
 
@@ -19,24 +21,24 @@ feature: prompt-scorer
 **What specific work needs to be done?**
 
 ### Phase 1: Foundation
-- [ ] Task 1.1: Define `ScoreResult`, `ComparisonResult`, and exception types.
-- [ ] Task 1.2: Implement `ScorerRegistry` + base class / protocol.
+- [ ] Task 1.1: Define `ScoreResult`, `ComparisonResult`, and exception types (stable for agent/UI).
+- [ ] Task 1.2: Implement **eval profile registry** (name → stepwise-evaluation / Braintrust config)—**avoid** duplicating Braintrust client logic here.
 
 ### Phase 2: Core Features
-- [ ] Task 2.1: Built-in **context-only** scorer using context-engineering Markdown (e.g. checklist against selected method section).
-- [ ] Task 2.2: Built-in **dataset** scorer skeleton (minimal dataset format).
-- [ ] Task 2.3: `compare()` implementation with deltas.
-- [ ] Task 2.4: Explanation field populated for all built-ins.
+- [ ] Task 2.1: **Context-only** path: default ``sources/data/context/prompt_methods_context.md``, invoke **stepwise-evaluation** for configured eval.
+- [ ] Task 2.2: **Dataset** path: adapt rows → stepwise-evaluation batch / Braintrust dataset format.
+- [ ] Task 2.3: `compare()` — two runs via stepwise, return **both** scores, explanations, **deltas** for UI.
+- [ ] Task 2.4: Map Braintrust / stepwise outputs into **explanation** fields on `ScoreResult`.
 
 ### Phase 3: Integration & Polish
-- [ ] Task 3.1: Document extension guide (register custom scorer).
+- [ ] Task 3.1: Document extension guide (new eval profiles in Braintrust / stepwise, not new Python “scorer classes” unless thin wrappers).
 - [ ] Task 3.2: Thin adapter for **`prompt-optimizer-agent`** (import path, kwargs).
 
 ## Dependencies
 **What needs to happen in what order?**
 
-- Stable **context file** format from **context-engineering** helps context-only scorers.
-- **`prompt-optimizer-agent`** depends on this API; ship scorer API before final agent wiring.
+- **stepwise-evaluation** must ship **before** or **with** scorer MVP (scorer has no Braintrust without it).
+- **context-engineering** outputs ``prompt_methods_context.md`` (**available**); agent/UI depend on scorer API once defined.
 
 ## Timeline & Estimates
 **When will things be done?**
