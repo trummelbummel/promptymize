@@ -5,11 +5,9 @@ from unittest.mock import patch
 import dspy
 
 from auto_prompt.promptymization.dspy_modules import (
-    DeduplicatePromptSection,
     PromptMethodSummarizer,
     SummarizePromptMethods,
 )
-
 
 # -- SummarizePromptMethods signature --------------------------------------
 

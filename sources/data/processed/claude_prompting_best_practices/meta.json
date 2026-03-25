@@ -1,0 +1,10 @@
+{
+  "folder_name": "claude/claude_prompting_best_practices",
+  "hostname": "platform.claude.com",
+  "output": {
+    "html": "claude/claude_prompting_best_practices/source.html",
+    "markdown": "claude/claude_prompting_best_practices/page.md"
+  },
+  "scraped_at": "2026-03-12T14:50:03.732551+00:00",
+  "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices"
+}

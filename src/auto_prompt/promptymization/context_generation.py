@@ -7,6 +7,7 @@ from pathlib import Path
 import dspy
 
 from auto_prompt.promptymization.dedupe_markdown import exact_dedupe_prompt_method_markdown
+from auto_prompt.promptymization.dspy_lm import configure_dspy_lm_from_env
 from auto_prompt.promptymization.dspy_modules import PromptMethodSummarizer
 
 CONTEXT_FILENAME = "prompt_methods_context.md"
@@ -38,6 +39,8 @@ class PromptMethodsContext:
         self.data_root = data_root if data_root is not None else project_root / "sources" / "data"
         self.processed_root = self.data_root / "processed"
         self.context_root = self.data_root / "context"
+        # Only the default summarizer requires DSPy LM configuration.
+        self._needs_dspy_lm_config = summarizer is None or incremental_deduplicator is not None
         self.summarizer: dspy.Module = summarizer or PromptMethodSummarizer()
         self.incremental_deduplicator: dspy.Module | None = incremental_deduplicator
 
@@ -68,18 +71,53 @@ class PromptMethodsContext:
         existing = latest_path.read_text(encoding="utf-8") if latest_path.exists() else ""
 
         markdown_files = list(self._iter_markdown_files())
+        if self._needs_dspy_lm_config and markdown_files:
+            configure_dspy_lm_from_env()
+
+        aggregated, running_reference, source_rel_paths = self._summarize_and_stage_sources(markdown_files)
+        body = self._build_context_body(existing=existing, aggregated=aggregated, running_reference=running_reference)
+        latest_path.write_text(body, encoding="utf-8")
+
+        if emit_context_engineering_eval:
+            from auto_prompt.evaluation.config import load_braintrust_config_from_env
+            from auto_prompt.evaluation.logging import build_context_engineering_record, log_step
+
+            record = build_context_engineering_record(
+                run_id=eval_run_id,
+                data_root=str(self.data_root.resolve()),
+                context_path=str(latest_path.resolve()),
+                source_paths=source_rel_paths,
+                merged_body=body,
+                incremental_dedupe=self.incremental_deduplicator is not None,
+            )
+            log_step(record, config=load_braintrust_config_from_env())
+
+        return latest_path
+
+    def _summarize_and_stage_sources(
+        self,
+        markdown_files: list[Path],
+    ) -> tuple[list[str], str, list[str]]:
+        """
+        Summarize each ``.md`` and move its source folder to ``processed``.
+
+        :returns: ``(aggregated_summaries, running_reference, source_rel_paths)``.
+        """
+
         aggregated: list[str] = []
         running_reference = ""
         moved: set[Path] = set()
         source_rel_paths: list[str] = []
+        incremental = self.incremental_deduplicator is not None
 
         for md_path in markdown_files:
             source_rel_paths.append(str(md_path.relative_to(self.data_root)))
             text = md_path.read_text(encoding="utf-8")
             prediction = self.summarizer(text=text)
             summary = prediction.summary.strip()
-            if self.incremental_deduplicator is not None:
-                deduped = self.incremental_deduplicator.forward(
+
+            if incremental:
+                deduped = self.incremental_deduplicator.forward(  # type: ignore[union-attr]
                     new_text=summary,
                     reference_file=running_reference,
                 )
@@ -104,37 +142,23 @@ class PromptMethodsContext:
                 shutil.move(str(folder), str(target_folder))
                 moved.add(folder)
 
-        if self.incremental_deduplicator is not None:
-            merged = running_reference
-        else:
-            merged = "\n\n".join(s.strip() for s in aggregated if s.strip())
+        return aggregated, running_reference, source_rel_paths
 
+    def _build_context_body(self, *, existing: str, aggregated: list[str], running_reference: str) -> str:
+        """
+        Merge a run's output into existing ``prompt_methods_context.md``.
+        """
+
+        merged = running_reference if self.incremental_deduplicator is not None else "\n\n".join(
+            s.strip() for s in aggregated if s.strip()
+        )
         chunk = exact_dedupe_prompt_method_markdown(merged) if merged.strip() else ""
 
         if not chunk.strip():
-            body = existing
-        elif not existing.strip():
-            body = chunk
-        else:
-            body = exact_dedupe_prompt_method_markdown(f"{existing.rstrip()}\n\n{chunk.rstrip()}")
-
-        latest_path.write_text(body, encoding="utf-8")
-
-        if emit_context_engineering_eval:
-            from auto_prompt.evaluation.config import load_braintrust_config_from_env
-            from auto_prompt.evaluation.logging import build_context_engineering_record, log_step
-
-            record = build_context_engineering_record(
-                run_id=eval_run_id,
-                data_root=str(self.data_root.resolve()),
-                context_path=str(latest_path.resolve()),
-                source_paths=source_rel_paths,
-                merged_body=body,
-                incremental_dedupe=self.incremental_deduplicator is not None,
-            )
-            log_step(record, config=load_braintrust_config_from_env())
-
-        return latest_path
+            return existing
+        if not existing.strip():
+            return chunk
+        return exact_dedupe_prompt_method_markdown(f"{existing.rstrip()}\n\n{chunk.rstrip()}")
 
     def _iter_markdown_files(self) -> Iterator[Path]:
         """

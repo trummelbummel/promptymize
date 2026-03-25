@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from auto_prompt.errors import ConfigurationError
 from auto_prompt.evaluation import (
     build_context_engineering_record,
     build_end_to_end_stub,
@@ -17,7 +18,6 @@ from auto_prompt.evaluation import (
 from auto_prompt.evaluation.config import BraintrustConfig, load_braintrust_config_from_env
 from auto_prompt.evaluation.records import EvalRecord
 from auto_prompt.evaluation.steps import STEP_ORDER
-from auto_prompt.errors import ConfigurationError
 
 
 def test_load_braintrust_config_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
