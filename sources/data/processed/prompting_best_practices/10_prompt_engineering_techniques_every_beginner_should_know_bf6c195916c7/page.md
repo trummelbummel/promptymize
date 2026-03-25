@@ -24,7 +24,7 @@ Kaggle and Google published a great Whitepaper on Prompt Engineering to help peo
 
 Below are 10 Key Takeaways from the whitepaper.
 
-### 1. Zero Shot Prompting
+## 1. Zero Shot Prompting
 
 Zero Shot Prompting means you provide no examples in your prompt.
 

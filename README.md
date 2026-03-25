@@ -13,7 +13,7 @@ All models have specific prompt guidelines. This project enables automatic adapt
 
 ## Scrape a documentation page
 
-This project includes a small CLI that fetches a documentation page, converts the main content to Markdown, and writes it to `resources/<foldername>/`.
+This project includes a small CLI that fetches a documentation page, converts the main content to Markdown, and writes it to `sources/data/<foldername>/`.
 
 ```bash
 uv run auto-prompt-scrape \
@@ -29,13 +29,13 @@ uv run playwright install chromium
 
 Output files:
 
-- `resources/<foldername>/page.md`
-- `resources/<foldername>/raw.html`
-- `resources/<foldername>/meta.json`
+- `sources/data/<foldername>/page.md`
+- `sources/data/<foldername>/raw.html`
+- `sources/data/<foldername>/meta.json`
 
-## Web scraper to `resources/context/` (text-only + HTML)
+## Web scraper to `sources/data/context/` (text-only + HTML)
 
-There is also a web scraper under `src/scraper/` that writes **text-only** content to `page.md` and the raw HTML to `source.html` under `resources/context/<folder_name>/`.
+There is also a web scraper under `src/scraper/` that writes **text-only** content to `page.md` and the raw HTML to `source.html` under `sources/data/context/<folder_name>/`.
 
 Single target:
 

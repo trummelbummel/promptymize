@@ -113,6 +113,18 @@ def create_dspy_lm_from_env() -> dspy.LM:
 
     litellm_model = normalize_dspy_model(model, api_base=api_base)
 
+    temperature_raw = os.environ.get("DSPY_TEMPERATURE", "0.0").strip()
+    try:
+        temperature = float(temperature_raw)
+    except ValueError:
+        temperature = 0.0
+
+    max_tokens_raw = os.environ.get("DSPY_MAX_TOKENS", "256").strip()
+    try:
+        max_tokens = int(max_tokens_raw)
+    except ValueError:
+        max_tokens = 256
+
     # Ollama expects endpoints under the root (e.g. /api/generate).
     # If users specify ".../v1", LiteLLM/DSPy can end up calling
     # ".../v1/api/generate" which returns 404.
@@ -123,6 +135,8 @@ def create_dspy_lm_from_env() -> dspy.LM:
     return dspy.LM(
         litellm_model,
         model_type="chat",
+        temperature=temperature,
+        max_tokens=max_tokens,
         api_base=api_base,
         api_key=api_key,
     )

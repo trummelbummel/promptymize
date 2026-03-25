@@ -32,7 +32,7 @@ build-context-eval: ## Same as build-context, then log context_engineering step 
 
 .PHONY: scrape-batch
 scrape-batch: ## Batch scrape from YAML config: make scrape-batch CONFIG=scraper_targets.yaml
-	@uv run auto-prompt-web-scrape batch "$(CONFIG)" --out-root resources/data
+	@uv run auto-prompt-web-scrape batch "$(CONFIG)" --out-root sources/data
 
 .PHONY: build
 build: clean-build ## Build wheel file
