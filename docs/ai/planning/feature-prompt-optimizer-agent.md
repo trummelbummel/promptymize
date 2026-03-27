@@ -13,7 +13,7 @@ feature: prompt-optimizer-agent
 - [x] **M1:** Requirements in repo; alignment with **context-engineering** (``prompt_methods_context.csv`` shipped) and **`prompt-scorer`** / **stepwise-evaluation** when implemented.
 - [ ] **M2:** Design approved (dialogue flow, tool contracts).
 - [x] **M3:** Agent MVP with mocked LLM + mocked scorer.
-- [ ] **M4:** Integration with real context file + **`prompt-scorer`** when available.
+- [x] **M4:** Integration with real context file + **`prompt-scorer`** when available.
 
 ## Task Breakdown
 **What specific work needs to be done?**
@@ -39,7 +39,7 @@ feature: prompt-optimizer-agent
 **What needs to happen in what order?**
 
 - **context-engineering** produces ``sources/data/context/prompt_methods_context.csv`` with exploded ``model_type`` rows (**implemented**).
-- **`prompt-scorer`** (+ **stepwise-evaluation** / Braintrust) defines tool signature; agent blocked until scorer MVP exists.
+- **`prompt-scorer`** (+ **stepwise-evaluation** / Braintrust) now provides the scoring boundary and profiles; remaining work is richer dialogue orchestration and direct selected-method apply UX path.
 
 ## Timeline & Estimates
 **When will things be done?**

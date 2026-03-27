@@ -15,7 +15,7 @@ feature: prompt-scorer
 - [x] **M1:** Requirements + output schema agreed (`/review-requirements`).
 - [x] **M2:** Design: `ScoreResult`, registry, context vs dataset (`/review-design`).
 - [x] **M3:** Core implementation + unit tests.
-- [ ] **M4:** Integration with **`prompt-optimizer-agent`** (tool adapter).
+- [x] **M4:** Integration with **`prompt-optimizer-agent`** (tool adapter).
 
 ## Task Breakdown
 **What specific work needs to be done?**
@@ -29,6 +29,7 @@ feature: prompt-scorer
 - [x] Task 2.2: **Dataset** path: adapt rows → stepwise-evaluation batch / Braintrust dataset format.
 - [x] Task 2.3: `compare()` — two runs via stepwise, return **both** scores, explanations, **deltas** for UI.
 - [x] Task 2.4: Map Braintrust / stepwise outputs into **explanation** fields on `ScoreResult`.
+- [x] Task 2.5: Add **instruction consistency** scoring profile that detects contradictory instructions and returns contradiction explanations + structured metadata for UI/agent.
 
 ### Phase 3: Integration & Polish
 - [ ] Task 3.1: Document extension guide (new eval profiles in Braintrust / stepwise, not new Python “scorer classes” unless thin wrappers).

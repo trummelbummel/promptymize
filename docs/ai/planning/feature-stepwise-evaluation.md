@@ -26,6 +26,7 @@ feature: stepwise-evaluation
 - [x] Task 2.1: **EvalRecord** + **`log_step` / `run_step_eval`** + **`build_context_engineering_record`** — context pipeline calls after merge when eval enabled.
 - [x] Task 2.2: **Observation import**: ``iter_observation_jsonl`` → :class:`EvalRecord` (JSONL → rows; Braintrust dataset push remains manual/UI for now).
 - [x] Task 2.3: **End-to-end** placeholder: ``build_end_to_end_stub`` / ``EndToEndTraceStub`` in ``evaluation/end_to_end.py``.
+- [x] Task 2.4: Add reusable contradiction-instruction scoring helper (``score_instruction_contradictions``) for scorer profiles and shared eval semantics.
 
 ### Phase 3: Integration & Polish
 - [x] Task 3.1: **Makefile** ``build-context-eval``; CLI ``auto-prompt-build-context --eval`` / ``--eval-run-id``; env ``AUTO_PROMPT_CONTEXT_EVAL``.
