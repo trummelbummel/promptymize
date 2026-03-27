@@ -23,13 +23,13 @@ feature: prompt-method-scraper
 - [x] Task 1.2: Map `folder_name` → output under data root — ``auto_prompt.scraper.paths.resolve_output_dir`` + ``sanitize_folder_name`` in ``src/``; default data root ``sources/data``. **Note:** ``tests/scraper/`` not present in repo yet—add when scraper package is restored.
 
 ### Phase 2: Core Features
-- [ ] Task 2.1: **Implement** blog/HTML URL handling → Markdown under configured folders (production code paths, not placeholders).
+- [x] Task 2.1: **Implement** blog/HTML URL handling → Markdown under configured folders (production code path in ``auto_prompt.scraper.web_scraper``; HTML→Markdown + JS-loading-shell guard).
 - [ ] Task 2.2: arXiv URLs: define and implement abstract vs PDF strategy.
 - [ ] Task 2.3: PDF download + text extraction → Markdown or documented companion format.
 
 ### Phase 3: Integration & Polish
-- [ ] Task 3.1: CLI/Makefile target for “run full scrape from config.”
-- [ ] Task 3.2: Logging, exit codes, and idempotency behavior documented.
+- [x] Task 3.1: CLI/Makefile target for “run full scrape from config.” (``auto-prompt-web-scrape batch`` + ``make scrape-batch``).
+- [x] Task 3.2: Logging + non-zero exit on failed URLs implemented (per-URL stderr lines; run fails if any URL fails).
 
 ## Dependencies
 **What needs to happen in what order?**
@@ -48,6 +48,7 @@ feature: prompt-method-scraper
 - **Site blocking / rate limits:** retries, backoff, document manual runs.
 - **PDF quality:** fallback message in Markdown, optional “raw extract” file.
 - **ResearchGate / heavy JS:** may exclude or mark as unsupported.
+- **Current reality check:** many configured URLs (notably Medium/ResearchGate) return ``403`` in real runs; treat as expected external-blocking risk and keep per-URL failure reporting explicit.
 
 ## Resources Needed
 **What do we need to succeed?**

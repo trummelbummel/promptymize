@@ -12,7 +12,7 @@ feature: user-interface
 
 - Users need a **primary, approachable surface** to work with the **prompt-optimizer agent** and related capabilities (**prompt-scorer**, optional datasets). Today, interaction without a UI is secondary; the **user interface** should be the **main option** for driving the workflow.
 - Users must **compare prompts**, **inspect scores and explanations**, **choose between an old and a newly proposed prompt**, and **upload evaluation data** when available.
-- The backend must **load** the **merged latest** context artifact at ``sources/data/context/prompt_methods_context.md`` for **both** the **prompt-optimizer-agent** and **prompt-scorer** (same file as **context-engineering** output), so proposals and scores stay aligned with prompt methods.
+- The backend must **load** the **merged latest** context artifact at ``sources/data/context/prompt_methods_context.csv`` for **both** the **prompt-optimizer-agent** and **prompt-scorer** (same file as **context-engineering** output), with model-type filtering so proposals and scores stay aligned with prompt methods.
 - The UI may **trigger Braintrust-backed evaluations** by calling **prompt-scorer**, which **delegates** to **stepwise-evaluation** (Braintrust); the REST API does not embed a second Braintrust client for the same use cases.
 
 **Who is affected:** end users improving prompts; anyone who prefers GUI over CLI/API.
@@ -31,6 +31,9 @@ feature: user-interface
   - Clear session state: which prompt is “current,” which is “candidate.”
 - **Authentication:** sign-in with **Google**; only authenticated users use the REST API for agent and scoring (except OAuth callback and health checks as needed).
 - **Backend:** **REST API** implements the server (no WebSocket required for MVP).
+- **REST API as main entrypoint:** the UI calls backend routes as the primary execution path for agent/scoring workflows. Each executable UI step has a dedicated route so steps can be run independently.
+- **Step rerun support:** users can rerun any previously executed step via REST and receive refreshed output (no full pipeline rerun required unless explicitly requested).
+- **Route-per-action behavior:** button clicks in UI map to associated REST routes that execute only the selected step.
 - **Comparison view:** when showing **prompt-scorer** ``compare`` results, display **both** prompt versions’ **scores**, **each explanation**, and **deltas** (not scores alone).
 - **Braintrust:** the UI may **trigger Braintrust-backed eval runs** by calling **prompt-scorer** endpoints; **prompt-scorer** delegates to **stepwise-evaluation** (Braintrust). The UI does **not** embed the Braintrust SDK directly.
 - **Non-goals (initial)**
@@ -45,6 +48,9 @@ feature: user-interface
 - As a **user**, I want to **see the scores of each prompt** and **explanations for the score** so I understand quality and trade-offs.
 - As a **user**, when a **new version is proposed**, I want to **select the new prompt** or **select the old prompt** explicitly.
 - As a **user**, I want to **upload data** if I have data for **evaluation** of the prompt.
+- As a **user**, I want each step defined in the UI to be executable **separately** through its own backend route.
+- As a **user**, I want to **rerun any step** and see the updated output in the UI.
+- As a **user**, I want to **score prompts** and see score results in the UI via dedicated scoring routes.
 
 **Workflows**
 

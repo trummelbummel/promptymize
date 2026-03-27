@@ -16,7 +16,7 @@ graph TD
   Ingest --> Summarize[PromptMethodSummarizer]
   Summarize --> Sections[Structured Markdown sections per method]
   Sections --> Dedup[DeduplicatePromptSection or successor]
-  Dedup --> ContextFile[Merge-latest prompt_methods_context.md]
+  Dedup --> ContextFile[Merge-latest prompt_methods_context.csv]
   Config[dspy settings / LM] --> Summarize
   Config --> Dedup
   ContextFile -.->|eval mode optional| Stepwise[stepwise-evaluation]
@@ -27,7 +27,8 @@ graph TD
 - **Ingest:** load text from scraper Markdown; optional chunking for very long files (reuse preprocessing if needed).
 - **Summarize:** ``PromptMethodSummarizer`` (DSPy) produces **per-source** structured Markdown (headers + bullets).
 - **Dedupe:** cross-source deduplication to produce **one context artifact** with **unique methods and bullets**.
-- **Output path (canonical):** single merge file ``sources/data/context/prompt_methods_context.md`` updated by **merging** each run’s new summaries into the existing file, then deduplicating; project data root is ``sources/data``.
+- **Output path (canonical):** single merge file ``sources/data/context/prompt_methods_context.csv`` updated by **merging** each run’s new summaries into the existing file, then deduplicating; project data root is ``sources/data``.
+- **CSV shape:** rows contain at least ``method_name``, ``model_type``, and ``section_markdown``; rows are **exploded by model_type** so one method may be represented by multiple rows.
 
 ## Stepwise evaluation during context build
 
@@ -36,14 +37,14 @@ graph TD
 - **Default:** eval mode **off**; ``build-context`` does not import or require Braintrust.
 - **Opt-in:** CLI flag and/or environment variable (exact names in implementation); **fail-fast** with ``ConfigurationError`` if eval is requested but Braintrust env is invalid.
 - **Blocking vs best-effort:** align with **stepwise-evaluation** NFR (e.g. **non-blocking** log by default, **blocking** eval run if explicitly requested).
-- **Ordering:** acquire **merge lock** and finish **atomic write** of ``prompt_methods_context.md`` **before** emitting the CE eval record so Braintrust sees the final merged artifact.
+- **Ordering:** acquire **merge lock** and finish **atomic write** of ``prompt_methods_context.csv`` **before** emitting the CE eval record so Braintrust sees the final merged artifact.
 
 ## Concurrency: single writer for context merge
 
-Only **one** process may perform a **read–merge–write** cycle on ``prompt_methods_context.md`` at a time.
+Only **one** process may perform a **read–merge–write** cycle on ``prompt_methods_context.csv`` at a time.
 
 - **Lock:** acquire an **exclusive advisory lock** (e.g. sibling file ``sources/data/context/.prompt_methods_context.lock`` or a dedicated lock path) for the whole transaction: read existing file → merge new summaries → dedupe → persist.
-- **Atomic publish:** write the updated Markdown to a **temporary file** in the same directory, ``fsync``, then **rename** into ``prompt_methods_context.md`` so readers never see a partial file.
+- **Atomic publish:** write the updated CSV to a **temporary file** in the same directory, ``fsync``, then **rename** into ``prompt_methods_context.csv`` so readers never see a partial file.
 - **Failure:** if the lock cannot be acquired within a **configurable timeout**, raise ``ConcurrencyError`` with a clear message (CLI: non-zero exit; callers may retry).
 - **Readers:** concurrent read-only access is allowed; torn reads are avoided by atomic replace. Long-running editors should re-open the file after a merge.
 
@@ -64,7 +65,7 @@ Skipped or empty inputs are **logged** and skipped per policy; they do not by de
 
 - **Input artifact:** path + raw Markdown string.
 - **Intermediate:** `dspy.Prediction` with `summary`, `headers`, `sections` (or evolved shape).
-- **Output artifact:** single Markdown string + optional metadata (generated_at, source list).
+- **Output artifact:** canonical CSV rows (method/model/section) + optional metadata (generated_at, source list).
 
 ## API Design
 **How do components communicate?**

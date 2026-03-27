@@ -12,33 +12,33 @@ feature: prompt-scorer
 ## Milestones
 **What are the major checkpoints?**
 
-- [ ] **M1:** Requirements + output schema agreed (`/review-requirements`).
-- [ ] **M2:** Design: `ScoreResult`, registry, context vs dataset (`/review-design`).
-- [ ] **M3:** Core implementation + unit tests.
+- [x] **M1:** Requirements + output schema agreed (`/review-requirements`).
+- [x] **M2:** Design: `ScoreResult`, registry, context vs dataset (`/review-design`).
+- [x] **M3:** Core implementation + unit tests.
 - [ ] **M4:** Integration with **`prompt-optimizer-agent`** (tool adapter).
 
 ## Task Breakdown
 **What specific work needs to be done?**
 
 ### Phase 1: Foundation
-- [ ] Task 1.1: Define `ScoreResult`, `ComparisonResult`, and exception types (stable for agent/UI).
-- [ ] Task 1.2: Implement **eval profile registry** (name → stepwise-evaluation / Braintrust config)—**avoid** duplicating Braintrust client logic here.
+- [x] Task 1.1: Define `ScoreResult`, `ComparisonResult`, and exception types (stable for agent/UI).
+- [x] Task 1.2: Implement **eval profile registry** (name → stepwise-evaluation / Braintrust config)—**avoid** duplicating Braintrust client logic here.
 
 ### Phase 2: Core Features
-- [ ] Task 2.1: **Context-only** path: default ``sources/data/context/prompt_methods_context.md``, invoke **stepwise-evaluation** for configured eval.
-- [ ] Task 2.2: **Dataset** path: adapt rows → stepwise-evaluation batch / Braintrust dataset format.
-- [ ] Task 2.3: `compare()` — two runs via stepwise, return **both** scores, explanations, **deltas** for UI.
-- [ ] Task 2.4: Map Braintrust / stepwise outputs into **explanation** fields on `ScoreResult`.
+- [x] Task 2.1: **Context-only** path: default ``sources/data/context/prompt_methods_context.csv``; filter by target ``model_type`` (+ ``all`` rows), reconstruct markdown context, then invoke **stepwise-evaluation** for configured eval.
+- [x] Task 2.2: **Dataset** path: adapt rows → stepwise-evaluation batch / Braintrust dataset format.
+- [x] Task 2.3: `compare()` — two runs via stepwise, return **both** scores, explanations, **deltas** for UI.
+- [x] Task 2.4: Map Braintrust / stepwise outputs into **explanation** fields on `ScoreResult`.
 
 ### Phase 3: Integration & Polish
 - [ ] Task 3.1: Document extension guide (new eval profiles in Braintrust / stepwise, not new Python “scorer classes” unless thin wrappers).
-- [ ] Task 3.2: Thin adapter for **`prompt-optimizer-agent`** (import path, kwargs).
+- [x] Task 3.2: Thin adapter for **`prompt-optimizer-agent`** (import path, kwargs).
 
 ## Dependencies
 **What needs to happen in what order?**
 
 - **stepwise-evaluation** must ship **before** or **with** scorer MVP (scorer has no Braintrust without it).
-- **context-engineering** outputs ``prompt_methods_context.md`` (**available**); agent/UI depend on scorer API once defined.
+- **context-engineering** outputs ``prompt_methods_context.csv`` (**available**); agent/UI depend on scorer API once defined.
 
 ## Timeline & Estimates
 **When will things be done?**

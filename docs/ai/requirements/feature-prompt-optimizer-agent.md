@@ -15,7 +15,7 @@ feature: prompt-optimizer-agent
 
 **Who is affected:** end users improving prompts; integrators wiring the agent to context files and the scorer tool.
 
-- **Context file dependency:** the agent **must load** the merged latest context artifact at ``sources/data/context/prompt_methods_context.md`` (output of **context-engineering**) to retrieve prompt methods. The same path must be used consistently with **prompt-scorer**.
+- **Context file dependency:** the agent **must load** the merged latest context artifact at ``sources/data/context/prompt_methods_context.csv`` (output of **context-engineering**) to retrieve prompt methods. The CSV includes ``model_type`` labels and may contain multiple rows per method when a method applies to multiple model families.
 
 ## Goals & Objectives
 **What do we want to achieve?**
@@ -34,6 +34,8 @@ feature: prompt-optimizer-agent
 - **Secondary goals**
   - Clear UX copy and state (what was asked, what was proposed, what was applied).
   - Traceability: which context methods informed which proposal (high level).
+  - CO-STAR enrichment should run in a **single prompt call** that jointly extends all six dimensions while considering all user-provided objectives.
+  - Keep the **user in the loop**: before applying enriched details to the working prompt, the UI must ask the user to confirm whether the additions are improvements or should be edited.
 - **Non-goals (this feature)**
   - Defining the **scoring rubric or implementation** (owned by **`prompt-scorer`**).
   - Replacing **context-engineering** pipeline (consumes its output).
@@ -46,6 +48,7 @@ feature: prompt-optimizer-agent
 - As a **user**, I want proposals that **creatively mix** multiple prompt methods to help me build a **better** prompt.
 - As a **user**, if I **say yes** to a proposal, I want the agent to **modify my prompt** by **applying the rules** from the **specific method(s)** in that proposal.
 - As a **user**, I want the agent to **score my prompt before** it is modified and **after** it has been modified (via **`prompt-scorer`**).
+- As a **user**, I want the agent to generate one **joint CO-STAR extension draft** (all dimensions together, objective-aware), then let me review/approve/edit it in the UI before it is applied.
 
 **Workflows (high level)**
 

@@ -20,7 +20,7 @@ feature: user-interface
 
 ### Phase 1: Foundation
 - [ ] Task 1.1: Choose stack and app location in repo (e.g. `frontend/` or `ui/`).
-- [ ] Task 1.2: Define OpenAPI or shared types for session, scores, uploads, **Google OAuth**, and **REST** routes.
+- [ ] Task 1.2: Define OpenAPI or shared types for session, scores, uploads, **Google OAuth**, and **REST** routes; include one route per executable UI step.
 - [ ] Task 1.3: Implement **Google OAuth** on the web app and **REST** session/JWT handoff to the backend.
 
 ### Phase 2: Core Features
@@ -28,7 +28,10 @@ feature: user-interface
 - [ ] Task 2.2: Compare view: two prompts + select old vs new.
 - [ ] Task 2.3: Score + explanation panel: bind to ``ScoreResult``; for **compare**, show **before**, **after**, **both explanations**, and **deltas** from ``ComparisonResult``.
 - [ ] Task 2.4: Dataset upload flow and validation.
-- [ ] Task 2.5: Backend loads ``sources/data/context/prompt_methods_context.md`` for agent + scorer on session start (see design).
+- [ ] Task 2.5: Backend loads ``sources/data/context/prompt_methods_context.csv`` for agent + scorer on session start, filtering by target ``model_type`` (and including ``all`` rows).
+- [ ] Task 2.6: Add **step execution routes** so each UI button triggers one specific backend step independently.
+- [ ] Task 2.7: Add **step rerun routes** that re-execute any prior step and return refreshed output for UI state updates.
+- [ ] Task 2.8: Add dedicated **scoring routes** for score/compare so users can execute scoring independently and view results in UI.
 
 ### Phase 3: Integration & Polish
 - [ ] Task 3.1: Error handling, empty states, accessibility pass.
@@ -39,7 +42,8 @@ feature: user-interface
 
 - **`prompt-scorer`** API stable (delegates to **stepwise-evaluation** / Braintrust for eval runs).
 - **`prompt-optimizer-agent`** exposes stable turn + proposal contract.
-- **Context path** ``prompt_methods_context.md`` — matches **context-engineering** output (**implemented**).
+- **Context path** ``prompt_methods_context.csv`` — matches **context-engineering** output (**implemented**, with model-labeled rows).
+- **REST API** is the main entrypoint for UI-triggered execution; route-per-step contracts must be stable before frontend wiring.
 
 ## Timeline & Estimates
 **When will things be done?**

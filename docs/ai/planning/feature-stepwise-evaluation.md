@@ -34,7 +34,7 @@ feature: stepwise-evaluation
 ## Dependencies
 **What needs to happen in what order?**
 
-- Stable **context** path: ``sources/data/context/prompt_methods_context.md`` (**done** in context-engineering).
+- Stable **context** path: ``sources/data/context/prompt_methods_context.csv`` (**done** in context-engineering; model-type filtering supported by consumer helpers).
 - **[x]** **`prompt-scorer`** calls this layer only—no duplicate Braintrust integration (see requirements).
 - **context-engineering** **must** be able to call this layer when eval mode is on (**same** Braintrust client package as scorer path).
 

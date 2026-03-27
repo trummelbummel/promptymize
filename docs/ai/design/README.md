@@ -25,7 +25,7 @@ Static exports (same content as the Mermaid blocks in this folder): see **[rende
 
 ## End-to-end system diagram
 
-**Product** flows run through the **REST backend** → **agent** / **prompt-scorer** → **stepwise-evaluation** → **Braintrust**. **Offline/CLI** paths: **scraper** and **context-engineering** populate `sources/data` and ``prompt_methods_context.md``. When **context eval mode** is enabled, **context-engineering** also calls **stepwise-evaluation** → **Braintrust** (same package as the scorer path).
+**Product** flows run through the **REST backend** → **agent** / **prompt-scorer** → **stepwise-evaluation** → **Braintrust**. **Offline/CLI** paths: **scraper** and **context-engineering** populate `sources/data` and ``prompt_methods_context.csv``. When **context eval mode** is enabled, **context-engineering** also calls **stepwise-evaluation** → **Braintrust** (same package as the scorer path).
 
 ```mermaid
 flowchart TB
@@ -34,7 +34,7 @@ flowchart TB
 
   subgraph sources["Local / repo storage"]
     SD[sources/data/**/*.md]
-    PMC[sources/data/context/prompt_methods_context.md]
+    PMC[sources/data/context/prompt_methods_context.csv]
   end
 
   subgraph ingest["Ingestion (offline / CLI)"]

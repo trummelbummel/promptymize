@@ -23,7 +23,7 @@ graph TD
   Stepwise --> Adapters
 ```
 
-- **Steps:** logical units (e.g. **scraper** → **`.md` only**, **context-engineering** → ``prompt_methods_context.md``, **agent** turn, **end-to-end** user session). Stepwise evaluation is **general**: any intermediate step during development, not only final prompt scoring.
+- **Steps:** logical units (e.g. **scraper** → **`.md` only**, **context-engineering** → ``prompt_methods_context.csv``, **agent** turn, **end-to-end** user session). Stepwise evaluation is **general**: any intermediate step during development, not only final prompt scoring.
 - **context-engineering** is a **first-party caller**: the **merge pipeline** invokes **stepwise** when **eval mode** is enabled (``step_id=context_engineering``), in addition to **prompt-scorer** and future hooks.
 - **Adapters:** thin layer that emits **structured records** (input, output, metadata, `step_id`) suitable for Braintrust logging or dataset rows.
 - **Braintrust:** hosts **datasets**, **eval definitions**, and **run results**; scorers may be Braintrust-native or wrapped Python functions per Braintrust docs.

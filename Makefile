@@ -19,7 +19,7 @@ test: ## Test the code with pytest
 	@uv run python -m pytest --doctest-modules
 
 .PHONY: build-context
-build-context: ## Merge into sources/data/context/prompt_methods_context.md (see docs/ai/planning/feature-context-engineering.md)
+build-context: ## Merge into sources/data/context/prompt_methods_context.csv (see docs/ai/planning/feature-context-engineering.md)
 	@echo "🚀 Building prompt-methods context file"
 	@uv run auto-prompt-build-context
 

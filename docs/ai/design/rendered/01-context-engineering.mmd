@@ -3,7 +3,7 @@ graph TD
   Ingest --> Summarize[PromptMethodSummarizer]
   Summarize --> Sections[Structured Markdown sections per method]
   Sections --> Dedup[DeduplicatePromptSection or successor]
-  Dedup --> ContextFile[Merge-latest prompt_methods_context.md]
+  Dedup --> ContextFile[Merge-latest prompt_methods_context.csv]
   Config[dspy settings / LM] --> Summarize
   Config --> Dedup
   ContextFile -.->|eval mode optional| Stepwise[stepwise-evaluation]

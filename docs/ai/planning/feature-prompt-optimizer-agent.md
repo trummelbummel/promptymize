@@ -10,23 +10,25 @@ feature: prompt-optimizer-agent
 ## Milestones
 **What are the major checkpoints?**
 
-- [x] **M1:** Requirements in repo; alignment with **context-engineering** (``prompt_methods_context.md`` shipped) and **`prompt-scorer`** / **stepwise-evaluation** when implemented.
+- [x] **M1:** Requirements in repo; alignment with **context-engineering** (``prompt_methods_context.csv`` shipped) and **`prompt-scorer`** / **stepwise-evaluation** when implemented.
 - [ ] **M2:** Design approved (dialogue flow, tool contracts).
-- [ ] **M3:** Agent MVP with mocked LLM + mocked scorer.
+- [x] **M3:** Agent MVP with mocked LLM + mocked scorer.
 - [ ] **M4:** Integration with real context file + **`prompt-scorer`** when available.
 
 ## Task Breakdown
 **What specific work needs to be done?**
 
 ### Phase 1: Foundation
-- [ ] Task 1.1: Define session model (CO-STAR optional fields, prompt versions).
-- [ ] Task 1.2: Stub **`prompt-scorer`** adapter (matches **`prompt-scorer`** feature spec when ready).
+- [x] Task 1.1: Define session model (CO-STAR optional fields, prompt versions).
+- [x] Task 1.2: Stub **`prompt-scorer`** adapter (matches **`prompt-scorer`** feature spec when ready).
 
 ### Phase 2: Core Features
 - [ ] Task 2.1: Implement CO-STAR question flow (first question = task description / CO-STAR framing per requirements).
-- [ ] Task 2.2: Load context-engineered input; proposal generation with method citation + mixing.
-- [ ] Task 2.3: Apply accepted proposal to user prompt using method rules.
-- [ ] Task 2.4: Invoke scorer **before** and **after** modification at defined points.
+- [x] Task 2.1a: Add a **single-call CO-STAR extension pass** that expands all six dimensions together using all provided objectives (no per-dimension isolated prompt calls).
+- [x] Task 2.1b: Add a **user-in-the-loop verification gate** in UI: user must review/approve/edit the extension draft before apply.
+- [x] Task 2.2: Load context-engineered input from ``sources/data/context/prompt_methods_context.csv``; filter rows by target ``model_type`` (plus ``all``) before proposal generation with method citation + mixing.
+- [x] Task 2.3: Apply accepted proposal to user prompt using method rules.
+- [x] Task 2.4: Invoke scorer **before** and **after** modification at defined points.
 
 ### Phase 3: Integration & Polish
 - [ ] Task 3.1: CLI or chat entrypoint documentation.
@@ -35,7 +37,7 @@ feature: prompt-optimizer-agent
 ## Dependencies
 **What needs to happen in what order?**
 
-- **context-engineering** produces ``sources/data/context/prompt_methods_context.md`` (**implemented**).
+- **context-engineering** produces ``sources/data/context/prompt_methods_context.csv`` with exploded ``model_type`` rows (**implemented**).
 - **`prompt-scorer`** (+ **stepwise-evaluation** / Braintrust) defines tool signature; agent blocked until scorer MVP exists.
 
 ## Timeline & Estimates
@@ -48,6 +50,7 @@ feature: prompt-optimizer-agent
 
 - **Over-mixing** methods confuses users → limit N methods per proposal; show labels.
 - **Scorer drift** if pre/post definitions unclear → document call sites in implementation guide.
+- **CO-STAR over-expansion** in one-shot extension → keep user approval/edit as a hard gate before apply.
 
 ## Resources Needed
 **What do we need to succeed?**

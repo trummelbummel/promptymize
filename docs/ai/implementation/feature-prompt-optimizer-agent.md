@@ -24,9 +24,11 @@ feature: prompt-optimizer-agent
 
 ### Core Features
 - **CO-STAR:** Store six optional slots + free-text “task description” as required by product; map to internal schema.
+- **CO-STAR extension pass:** after collecting user inputs/objectives, call the model **once** to extend all six CO-STAR dimensions jointly (objective-aware), and return structured fields for review.
 - **Proposals:** Pass context + user state into DSPy module(s); output structured proposal IDs or method names from context sections.
 - **Apply:** Single function `apply_proposal(user_prompt, proposal) -> str` for testability.
 - **Scoring:** `score_prompt(prompt, phase)` calling **`prompt-scorer`**; never duplicate scoring logic here.
+- **UI verification gate:** persist extension draft in session state and require explicit user approve/edit before applying to the working prompt.
 
 ### Patterns & Best Practices
 - OO style consistent with `fact_extractor.py`; Sphinx docstrings; early returns for empty inputs.

@@ -14,7 +14,9 @@ feature: prompt-optimizer-agent
 graph TD
   User[User] --> Agent[Prompt optimizer agent]
   Agent --> QA[CO-STAR question flow]
-  CtxFile[sources/data/context/prompt_methods_context.md]
+  QA --> Expand[Single-call CO-STAR extension]
+  Expand --> Review[UI review and user confirmation]
+  CtxFile[sources/data/context/prompt_methods_context.csv]
   CtxFile --> Agent
   Agent --> Propose[Proposal generator]
   Propose --> Mix[Method mixing logic]
@@ -25,14 +27,15 @@ graph TD
 ```
 
 - **Agent:** orchestrates dialogue, holds session state (answers, current prompt, proposals).
-- **Context file (required):** the agent **loads** ``sources/data/context/prompt_methods_context.md`` at session start (or per request). Proposals **must** be grounded in this file; **no** agent-only mode without the context file for method selection.
+- **Context file (required):** the agent **loads** ``sources/data/context/prompt_methods_context.csv`` at session start (or per request). Proposals **must** be grounded in this file; **no** agent-only mode without the context file for method selection.
 - **prompt-scorer:** external tool (separate feature); agent invokes with **prompt text** + optional metadata; scorer also **loads the same context file** when scoring (see **prompt-scorer** design).
+- **CO-STAR extension step:** once objectives + available CO-STAR inputs are collected, the agent performs **one prompt call** that extends **all CO-STAR dimensions together** (not six isolated calls), then returns a draft for UI verification.
 
 ## Data Models
 **What data do we need to manage?**
 
 - **Session state:** CO-STAR fields (all optional strings), current `user_prompt`, `last_proposal`, `pending_methods` cited.
-- **Context artifact:** Markdown string or file path; may include section headers per prompt method.
+- **Context artifact:** CSV rows with at least ``method_name``, ``model_type``, ``section_markdown``; rows are **exploded by model type** so one method may appear in multiple rows.
 - **Scorer I/O:** defined by **`prompt-scorer`** (e.g. score, rationale, dimensions).
 
 ## API Design
@@ -42,7 +45,7 @@ graph TD
 - **Agent → prompt-scorer:** function/tool call aligned with **prompt-scorer** (see [feature-prompt-scorer.md](feature-prompt-scorer.md)):
   - ``score(prompt: str, scoring_phase: Literal["before", "after"], scorer_name: str, context_path: Path | None = None, method_id: str | None = None, session_id: str | None = None, ...)``
   - Use ``compare(prompt_before, prompt_after, scorer_name=..., ...)`` when the UI or flow needs side-by-side scores (no ``scoring_phase`` on ``compare``).
-- **Agent → context:** file read or injected dependency for testing.
+- **Agent → context:** file read or injected dependency for testing; filtering by ``model_type`` should happen before proposal generation.
 
 ## Error contract
 
@@ -58,10 +61,12 @@ The agent **does not** call Braintrust directly; scorer errors are **user-recove
 **What are the major building blocks?**
 
 - **Elicitation module:** CO-STAR prompts and validation (optional fields).
+- **CO-STAR extension module:** builds one objective-aware completion pass across all dimensions and emits a structured draft for user review.
 - **Retrieval / selection:** map CO-STAR + user prompt to relevant sections in context (LM-assisted or heuristic).
 - **Proposal module:** generate 1..N proposals with cited methods; support **mixing** multiple methods.
 - **Apply module:** transform user prompt given accepted method rules.
 - **Scoring hooks:** two explicit call sites that invoke ``PromptScorer.score`` with ``scoring_phase="before"`` and ``scoring_phase="after"`` (not ``compare`` unless the flow is explicitly a side-by-side comparison).
+- **Human-in-the-loop gate:** UI confirmation/edit step between CO-STAR extension output and apply step; apply must not run until user accepts.
 
 ## Design Decisions
 **Why did we choose this approach?**

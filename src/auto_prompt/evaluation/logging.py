@@ -22,7 +22,8 @@ def log_step(
     """
     Dispatch a single :class:`~auto_prompt.evaluation.records.EvalRecord` to Braintrust.
 
-    Currently supports ``context_engineering``; other step ids raise ``ConfigurationError``.
+    Supports ``context_engineering``, ``scraper_markdown``, ``agent_turn``, and ``end_to_end``.
+    Other step ids raise ``ConfigurationError``.
 
     :param record: Row to log.
     :param config: Optional config; defaults to env via :func:`load_braintrust_config_from_env`.
@@ -32,14 +33,14 @@ def log_step(
     """
 
     cfg = config if config is not None else load_braintrust_config_from_env()
-    if record.step_id == "context_engineering":
-        _log_context_engineering(record, cfg)
+    if record.step_id in {"context_engineering", "scraper_markdown", "agent_turn", "end_to_end"}:
+        _log_record(record, cfg)
         return
     raise ConfigurationError(f"Unsupported step_id for logging: {record.step_id!r}")
 
 
-def _log_context_engineering(record: EvalRecord, config: BraintrustConfig) -> None:
-    """Emit a span under a Braintrust project logger."""
+def _log_record(record: EvalRecord, config: BraintrustConfig) -> None:
+    """Emit a step record span under a Braintrust project logger."""
 
     try:
         logger = init_logger(
@@ -48,7 +49,7 @@ def _log_context_engineering(record: EvalRecord, config: BraintrustConfig) -> No
             api_key=config.api_key,
             set_current=False,
         )
-        name = f"context_engineering:{record.run_id}"
+        name = f"{record.step_id}:{record.run_id}"
         meta: dict[str, Any] = dict(record.metadata)
         if record.labels:
             meta["labels"] = record.labels
@@ -83,10 +84,16 @@ def run_step_eval(
     :return: The record that was logged.
     """
 
-    if step_id != "context_engineering":
+    if step_id == "context_engineering":
+        record = build_context_engineering_record(**payload)
+    elif step_id == "scraper_markdown":
+        record = build_scraper_markdown_record(**payload)
+    elif step_id == "agent_turn":
+        record = build_agent_turn_record(**payload)
+    elif step_id == "end_to_end":
+        record = build_end_to_end_record(**payload)
+    else:
         raise ConfigurationError(f"run_step_eval not implemented for step_id={step_id!r}")
-
-    record = build_context_engineering_record(**payload)
     log_step(record, config=config)
     return record
 
@@ -105,7 +112,7 @@ def build_context_engineering_record(
 
     :param run_id: Optional id; a random uuid is used if omitted.
     :param data_root: Root directory for scraped data.
-    :param context_path: Absolute or project-relative path to ``prompt_methods_context.md``.
+    :param context_path: Absolute or project-relative path to ``prompt_methods_context.csv``.
     :param source_paths: Relative paths of ``.md`` sources processed in this run.
     :param merged_body: Final merged Markdown written to disk.
     :param incremental_dedupe: Whether LM incremental dedupe was enabled.
@@ -130,4 +137,112 @@ def build_context_engineering_record(
             "merged_body_excerpt": excerpt,
         },
         metadata={"sdk": "braintrust", "emitter": "auto_prompt.evaluation"},
+    )
+
+
+def build_agent_turn_record(
+    *,
+    prompt: str,
+    scoring_phase: str,
+    scorer_name: str,
+    score: float,
+    explanation: str,
+    context_path: str | None = None,
+    dataset_size: int = 0,
+    method_id: str | None = None,
+    session_id: str | None = None,
+    metadata: dict[str, Any] | None = None,
+    run_id: str | None = None,
+) -> EvalRecord:
+    """Construct a record for one prompt-scorer invocation."""
+
+    rid = run_id or str(uuid.uuid4())
+    prompt_digest = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
+    return EvalRecord(
+        step_id="agent_turn",
+        run_id=rid,
+        inputs={
+            "prompt_sha256": prompt_digest,
+            "prompt_chars": len(prompt),
+            "scoring_phase": scoring_phase,
+            "scorer_name": scorer_name,
+            "context_path": context_path,
+            "dataset_size": dataset_size,
+            "method_id": method_id,
+            "session_id": session_id,
+        },
+        outputs={
+            "score": float(score),
+            "explanation": explanation,
+        },
+        metadata={
+            "sdk": "braintrust",
+            "emitter": "auto_prompt.evaluation",
+            **(metadata or {}),
+        },
+    )
+
+
+def build_scraper_markdown_record(
+    *,
+    source_url: str,
+    output_path: str,
+    markdown_body: str,
+    folder_name: str | None = None,
+    run_id: str | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> EvalRecord:
+    """Construct a record for one scraper markdown output."""
+
+    rid = run_id or str(uuid.uuid4())
+    digest = hashlib.sha256(markdown_body.encode("utf-8")).hexdigest()
+    excerpt = markdown_body[:2000] if len(markdown_body) > 2000 else markdown_body
+    return EvalRecord(
+        step_id="scraper_markdown",
+        run_id=rid,
+        inputs={
+            "source_url": source_url,
+            "folder_name": folder_name,
+        },
+        outputs={
+            "output_path": output_path,
+            "markdown_sha256": digest,
+            "markdown_chars": len(markdown_body),
+            "markdown_excerpt": excerpt,
+        },
+        metadata={
+            "sdk": "braintrust",
+            "emitter": "auto_prompt.evaluation",
+            **(metadata or {}),
+        },
+    )
+
+
+def build_end_to_end_record(
+    *,
+    session_id: str,
+    trace: dict[str, Any],
+    run_id: str | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> EvalRecord:
+    """Construct a record for one end-to-end user session trace."""
+
+    rid = run_id or str(uuid.uuid4())
+    trace_json = str(trace)
+    digest = hashlib.sha256(trace_json.encode("utf-8")).hexdigest()
+    return EvalRecord(
+        step_id="end_to_end",
+        run_id=rid,
+        inputs={
+            "session_id": session_id,
+        },
+        outputs={
+            "trace": trace,
+            "trace_sha256": digest,
+        },
+        metadata={
+            "sdk": "braintrust",
+            "emitter": "auto_prompt.evaluation",
+            **(metadata or {}),
+        },
     )

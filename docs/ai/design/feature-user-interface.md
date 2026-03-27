@@ -16,7 +16,7 @@ graph TD
   Google[Google OAuth] --> UI
   API --> Agent[prompt-optimizer-agent]
   API --> Scorer[prompt-scorer]
-  Ctx[sources/data/context/prompt_methods_context.md]
+  Ctx[sources/data/context/prompt_methods_context.csv]
   Ctx --> Agent
   Ctx --> Scorer
   API --> Store[Optional file store for uploads]
@@ -25,7 +25,7 @@ graph TD
 
 - **UI** is the **primary** interaction surface; it talks to a **REST** backend (no WebSocket requirement for MVP).
 - **Authentication:** users sign in with **Google** (OAuth 2.0); protected routes call the REST API with session/JWT per implementation.
-- **Context file:** backend **loads** ``sources/data/context/prompt_methods_context.md`` into **both** the agent and scorer for each session or request.
+- **Context file:** backend **loads** ``sources/data/context/prompt_methods_context.csv`` into **both** the agent and scorer for each session or request, applying model-type filtering as required by caller context.
 - **Braintrust:** the UI may **trigger** Braintrust-backed evals **through** **prompt-scorer**, which uses **stepwise-evaluation** (single Braintrust integration path).
 - **Uploads** land in **validated storage** (temp or project-scoped) and are passed by reference to scoring.
 
@@ -40,24 +40,26 @@ graph TD
 **How do components communicate?**
 
 - **REST only** for MVP: JSON request/response; long-poll or streaming optional later.
-- Endpoints sketch (all behind **Google-authenticated** sessions except OAuth callback/public health):
+- Canonical endpoint naming (all behind **Google-authenticated** sessions except OAuth callback/public health):
   - `POST /auth/google` / OAuth callback — establish session
-  - `POST /session` — start (server loads context file for agent/scorer)
-  - `POST /message` — user message / agent reply
-  - `POST /evaluate` — run ``prompt-scorer`` (single prompt)
-  - `POST /compare` — run ``PromptScorer.compare``; returns **before score**, **after score**, **explanations**, **deltas** (UI renders all)
-  - `POST /upload` — dataset file for evaluation
+  - `POST /v1/sessions` — start session (server loads context for agent/scorer)
+  - `POST /v1/sessions/{session_id}/messages` — user message / agent reply
+  - `POST /v1/steps/{step_id}/execute` — execute one UI-defined step independently
+  - `POST /v1/steps/{step_id}/rerun` — rerun previously executed step and return refreshed output
+  - `POST /v1/scoring/score` — run ``prompt-scorer.score`` (single prompt)
+  - `POST /v1/scoring/compare` — run ``PromptScorer.compare``; returns **before score**, **after score**, **explanations**, **deltas**
+  - `POST /v1/uploads/datasets` — upload dataset file for evaluation
 
 **Request alignment with Python APIs**
 
 - Single-prompt eval body should include ``scoring_phase``: ``"before"`` | ``"after"`` when mirroring agent pre/post hooks (same semantics as **prompt-scorer.score**).
-- ``POST /compare`` maps to **prompt-scorer.compare** (no ``scoring_phase`` on the request).
+- ``POST /v1/scoring/compare`` maps to **prompt-scorer.compare** (no ``scoring_phase`` on the request).
 
 ## Error contract
 
 - All error responses use the shared JSON envelope in [README.md](README.md) (``error_code``, ``message``, ``detail``).
 - Map backend exceptions to HTTP status per README; never return Braintrust tokens or stack traces.
-- **409** for context merge contention is rare from REST unless the backend triggers merges; **502** for Braintrust outages during ``/evaluate`` / ``/compare``.
+- **409** for context merge contention is rare from REST unless the backend triggers merges; **502** for Braintrust outages during ``/v1/scoring/score`` / ``/v1/scoring/compare``.
 
 ## Component Breakdown
 **What are the major building blocks?**

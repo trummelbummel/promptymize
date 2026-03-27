@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import urllib.error
 import urllib.request
+import csv
 from pathlib import Path
 
 import pytest
@@ -67,10 +67,14 @@ def test_context_engineering_integration_uses_real_llm(tmp_path: Path) -> None:
 
     pipeline = PromptMethodsContext(data_root=data_root)
     out_path = pipeline.build_context()
-    out_text = out_path.read_text(encoding="utf-8")
+    with out_path.open("r", encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
 
-    assert out_text.strip(), "Expected non-empty context output from real LM."
-    assert re.search(r"^##\s+\S+", out_text, flags=re.M), "Expected at least one '## <method>' header."
+    assert rows, "Expected non-empty context CSV output from real LM."
+    assert any(r.get("method_name", "").strip() for r in rows), "Expected at least one method_name row."
+    assert any(r.get("section_markdown", "").lstrip().startswith("## ") for r in rows), (
+        "Expected at least one markdown method section in section_markdown."
+    )
 
     # Orchestrator moves processed source folders.
     assert not (data_root / "batch1" / "source.md").exists()

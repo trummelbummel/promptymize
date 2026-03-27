@@ -25,7 +25,7 @@ feature: context-engineering
 ### Core Features
 - **Summarization:** Output must be parseable into sections (headers + body) for dedupe.
 - **Deduplication:** Reference file grows as novel content is merged; avoid re-processing unchanged sources if optimization added later.
-- **Output:** **merge-latest** into ``sources/data/context/prompt_methods_context.md`` (atomic replace + lock per design).
+- **Output:** **merge-latest** into ``sources/data/context/prompt_methods_context.csv`` (atomic replace + lock per design). Rows are exploded by ``model_type`` so the same method can be represented for multiple model families.
 - **Stepwise (CE phase):** optional flag/env to call **stepwise-evaluation** after a successful merge; **default off** so builds never require Braintrust.
 
 ### Patterns & Best Practices
@@ -35,7 +35,7 @@ feature: context-engineering
 **How do pieces connect?**
 
 - **Upstream:** Markdown from scraper (`sources/data/**/page.md` or equivalent).
-- **Downstream:** Agents and scorers read ``sources/data/context/prompt_methods_context.md`` (merge-latest; canonical path in design).
+- **Downstream:** Agents and scorers read ``sources/data/context/prompt_methods_context.csv`` and filter by ``model_type`` as needed (canonical path in design).
 - **Sideward:** **stepwise-evaluation** when eval mode is on (``context_engineering`` step); see **implementation — stepwise-evaluation**.
 
 ## Error Handling

@@ -16,7 +16,7 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(
         prog="auto-prompt-build-context",
-        description="Merge scraped .md summaries into sources/data/context/prompt_methods_context.md.",
+        description="Merge scraped .md summaries into sources/data/context/prompt_methods_context.csv.",
     )
     parser.add_argument(
         "--data-root",

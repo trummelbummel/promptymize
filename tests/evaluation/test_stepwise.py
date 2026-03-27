@@ -9,10 +9,14 @@ import pytest
 
 from auto_prompt.errors import ConfigurationError
 from auto_prompt.evaluation import (
+    build_agent_turn_record,
     build_context_engineering_record,
+    build_end_to_end_record,
     build_end_to_end_stub,
+    build_scraper_markdown_record,
     iter_observation_jsonl,
     log_step,
+    run_step_eval,
     trace_to_jsonable,
 )
 from auto_prompt.evaluation.config import BraintrustConfig, load_braintrust_config_from_env
@@ -33,7 +37,7 @@ def test_step_order_has_context_engineering_first() -> None:
 def test_build_context_engineering_record_hashes_body() -> None:
     record = build_context_engineering_record(
         data_root="/tmp/data",
-        context_path="/tmp/data/context/prompt_methods_context.md",
+        context_path="/tmp/data/context/prompt_methods_context.csv",
         source_paths=["a/x.md"],
         merged_body="## Hello\n- rule",
         incremental_dedupe=False,
@@ -53,7 +57,7 @@ def test_log_step_dispatches_to_braintrust(monkeypatch: pytest.MonkeyPatch) -> N
     with patch("auto_prompt.evaluation.logging.init_logger", return_value=mock_logger):
         record = build_context_engineering_record(
             data_root="/data",
-            context_path="/data/context/out.md",
+            context_path="/data/context/prompt_methods_context.csv",
             source_paths=[],
             merged_body="body",
             incremental_dedupe=False,
@@ -67,15 +71,104 @@ def test_log_step_dispatches_to_braintrust(monkeypatch: pytest.MonkeyPatch) -> N
     mock_span.log.assert_called_once()
 
 
+def test_run_step_eval_context_engineering_dispatches() -> None:
+    with patch("auto_prompt.evaluation.logging.log_step") as mock_log_step:
+        rec = run_step_eval(
+            "context_engineering",
+            data_root="/tmp/data",
+            context_path="/tmp/data/context/prompt_methods_context.csv",
+            source_paths=["a.md"],
+            merged_body="## A\n- b",
+            incremental_dedupe=False,
+        )
+    assert rec.step_id == "context_engineering"
+    mock_log_step.assert_called_once()
+
+
+def test_run_step_eval_scraper_markdown_dispatches() -> None:
+    with patch("auto_prompt.evaluation.logging.log_step") as mock_log_step:
+        rec = run_step_eval(
+            "scraper_markdown",
+            source_url="https://example.com",
+            output_path="sources/data/x/page.md",
+            markdown_body="# title",
+            folder_name="x",
+        )
+    assert rec.step_id == "scraper_markdown"
+    mock_log_step.assert_called_once()
+
+
+def test_run_step_eval_agent_turn_dispatches() -> None:
+    with patch("auto_prompt.evaluation.logging.log_step") as mock_log_step:
+        rec = run_step_eval(
+            "agent_turn",
+            prompt="Write a summary",
+            scoring_phase="before",
+            scorer_name="keyword_alignment",
+            score=0.5,
+            explanation="some overlap",
+        )
+    assert rec.step_id == "agent_turn"
+    mock_log_step.assert_called_once()
+
+
+def test_run_step_eval_end_to_end_dispatches() -> None:
+    with patch("auto_prompt.evaluation.logging.log_step") as mock_log_step:
+        rec = run_step_eval(
+            "end_to_end",
+            session_id="s-1",
+            trace={"session_id": "s-1", "agent_turns": 2},
+        )
+    assert rec.step_id == "end_to_end"
+    mock_log_step.assert_called_once()
+
+
 def test_log_step_unknown_step() -> None:
     rec = EvalRecord(
-        step_id="agent_turn",
+        step_id="unknown_step",  # type: ignore[arg-type]
         run_id="r",
         inputs={},
         outputs={},
     )
     with pytest.raises(ConfigurationError):
         log_step(rec, config=BraintrustConfig(api_key="k", project_id=None, project_name="p"))
+
+
+def test_build_agent_turn_record() -> None:
+    rec = build_agent_turn_record(
+        prompt="Write a concise summary",
+        scoring_phase="before",
+        scorer_name="keyword_alignment",
+        score=0.7,
+        explanation="Good keyword overlap",
+        context_path="/tmp/data/context/prompt_methods_context.csv",
+        dataset_size=0,
+    )
+    assert rec.step_id == "agent_turn"
+    assert rec.outputs["score"] == 0.7
+    assert rec.inputs["scoring_phase"] == "before"
+
+
+def test_build_scraper_markdown_record() -> None:
+    rec = build_scraper_markdown_record(
+        source_url="https://example.com/docs",
+        output_path="sources/data/x/page.md",
+        markdown_body="# Title\nhello",
+        folder_name="x",
+    )
+    assert rec.step_id == "scraper_markdown"
+    assert rec.outputs["markdown_chars"] > 0
+    assert len(rec.outputs["markdown_sha256"]) == 64
+
+
+def test_build_end_to_end_record() -> None:
+    rec = build_end_to_end_record(
+        session_id="s-1",
+        trace={"session_id": "s-1", "agent_turns": 3},
+    )
+    assert rec.step_id == "end_to_end"
+    assert rec.inputs["session_id"] == "s-1"
+    assert len(rec.outputs["trace_sha256"]) == 64
 
 
 def test_iter_observation_jsonl_roundtrip(tmp_path: Path) -> None:
