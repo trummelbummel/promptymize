@@ -28,7 +28,7 @@ feature: context-engineering
 
 ### PromptMethodsContext (or orchestrator)
 - [ ] Creates `processed` / `context` dirs as designed.
-- [ ] **Merge-latest** into ``prompt_methods_context.md`` with lock + atomic replace (see design).
+- [ ] **Merge-latest** into ``prompt_methods_context.csv`` with lock + atomic replace (see design).
 - [ ] Moves processed folders only once per run (if behavior unchanged).
 - [ ] **Eval mode off:** no Braintrust client imports or network.
 - [ ] **Eval mode on (mocked):** asserts stepwise called once per successful build with ``context_engineering`` StepId.
@@ -56,7 +56,7 @@ feature: context-engineering
 ## Manual Testing
 **What requires human validation?**
 
-- Read final context Markdown for clarity and lack of obvious duplicates.
+- Read final merged context CSV and per-method files for clarity and lack of obvious duplicates.
 
 ## Performance Testing
 **How do we validate performance?**

@@ -1,6 +1,7 @@
 """Stepwise evaluation: Braintrust-backed logging for pipeline steps."""
 
 from auto_prompt.evaluation.config import BraintrustConfig, load_braintrust_config_from_env
+from auto_prompt.evaluation.contradiction_scoring import score_instruction_contradictions
 from auto_prompt.evaluation.end_to_end import EndToEndTraceStub, build_end_to_end_stub, trace_to_jsonable
 from auto_prompt.evaluation.logging import (
     build_agent_turn_record,
@@ -21,6 +22,7 @@ __all__ = [
     "EndToEndTraceStub",
     "EvalRecord",
     "StepId",
+    "score_instruction_contradictions",
     "build_context_engineering_record",
     "build_end_to_end_record",
     "build_end_to_end_stub",

@@ -17,6 +17,8 @@ graph TD
   Summarize --> Sections[Structured Markdown sections per method]
   Sections --> Dedup[DeduplicatePromptSection or successor]
   Dedup --> ContextFile[Merge-latest prompt_methods_context.csv]
+  ContextFile --> Split[Per-method file splitter]
+  Split --> MethodDir[sources/data/context/methods/*.md]
   Config[dspy settings / LM] --> Summarize
   Config --> Dedup
   ContextFile -.->|eval mode optional| Stepwise[stepwise-evaluation]
@@ -29,6 +31,7 @@ graph TD
 - **Dedupe:** cross-source deduplication to produce **one context artifact** with **unique methods and bullets**.
 - **Output path (canonical):** single merge file ``sources/data/context/prompt_methods_context.csv`` updated by **merging** each run’s new summaries into the existing file, then deduplicating; project data root is ``sources/data``.
 - **CSV shape:** rows contain at least ``method_name``, ``model_type``, and ``section_markdown``; rows are **exploded by model_type** so one method may be represented by multiple rows.
+- **Split method outputs:** after merge, the pipeline writes one file per method header under ``sources/data/context/methods/`` with deterministic slug-based filenames.
 
 ## Stepwise evaluation during context build
 
@@ -79,6 +82,7 @@ Skipped or empty inputs are **logged** and skipped per policy; they do not by de
 - **Summarization signature:** enforces Markdown structure (method headers + rule bullets).
 - **Dedup module:** compares new content against **accumulated reference** Markdown; outputs novel headers/bullets only.
 - **Orchestrator:** iterates files, chains summarizer → dedupe against running aggregate or reference file; **optional** post-merge call to **stepwise-evaluation** for ``context_engineering``.
+- **Method file publisher:** materializes per-method files from merged sections for direct UI/agent method selection.
 
 ## Design Decisions
 **Why did we choose this approach?**

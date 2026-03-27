@@ -7,6 +7,7 @@ from typing import Any, Literal, Protocol
 
 from auto_prompt.errors import DependencyUnavailableError, ResourceNotFoundError, ValidationError
 from auto_prompt.evaluation import run_step_eval
+from auto_prompt.evaluation.contradiction_scoring import score_instruction_contradictions
 from auto_prompt.promptymization.context_csv import ContextMethodRow, load_context_rows, rows_to_markdown
 
 ScoringPhase = Literal["before", "after"]
@@ -102,11 +103,28 @@ class KeywordAlignmentProfile:
         return base_score, explanation, meta
 
 
+class ContradictionInstructionProfile:
+    """Deterministic profile for contradictory prompt instructions."""
+
+    def evaluate(
+        self,
+        *,
+        prompt: str,
+        context_markdown: str,
+        dataset: list[dict[str, Any]] | None = None,
+    ) -> tuple[float, str, dict[str, Any]]:
+        del context_markdown, dataset
+        return score_instruction_contradictions(prompt)
+
+
 class PromptScorer:
     """Facade for prompt scoring and comparison."""
 
     def __init__(self) -> None:
-        self._profiles: dict[str, ScoringProfile] = {"keyword_alignment": KeywordAlignmentProfile()}
+        self._profiles: dict[str, ScoringProfile] = {
+            "keyword_alignment": KeywordAlignmentProfile(),
+            "instruction_consistency": ContradictionInstructionProfile(),
+        }
 
     def register(self, name: str, profile: ScoringProfile) -> None:
         """Register a scoring profile under ``name``."""

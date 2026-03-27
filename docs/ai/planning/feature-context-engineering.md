@@ -31,6 +31,8 @@ feature: context-engineering
 - [x] Task 2.5: Publish context with **atomic replace** (write temp + ``fsync`` + rename) so readers never observe partial writes.
 - [x] Task 2.6: Add **bounded input chunking** for long markdown sources (header-aware split + fallback slicing) with configurable limit (``max_chunk_chars``).
 - [x] Task 2.7: Add **model-type labeling** + CSV row explosion (one method can emit multiple rows for different ``model_type`` values) for downstream filtering.
+- [ ] Task 2.8: Split merged context into **per-method files** named from normalized method headers (e.g. ``sources/data/context/methods/<method_slug>.md``).
+- [ ] Task 2.9: Add deterministic slug/collision policy for method filenames and idempotent regeneration on reruns.
 
 ### Phase 3: Integration & Polish
 - [x] Task 3.1: Run pipeline via ``make build-context`` or ``uv run auto-prompt-build-context`` (see ``cli.py``, ``pyproject.toml`` `[project.scripts]`).

@@ -22,6 +22,7 @@ Static exports (same content as the Mermaid blocks in this folder): see **[rende
 | Prompt scorer (facade) | [feature-prompt-scorer.md](feature-prompt-scorer.md) |
 | Prompt optimizer agent | [feature-prompt-optimizer-agent.md](feature-prompt-optimizer-agent.md) |
 | User interface + REST | [feature-user-interface.md](feature-user-interface.md) |
+| Model summarizer | [feature-model-summarizer.md](feature-model-summarizer.md) |
 
 ## End-to-end system diagram
 

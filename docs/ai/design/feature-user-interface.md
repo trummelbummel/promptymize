@@ -17,7 +17,9 @@ graph TD
   API --> Agent[prompt-optimizer-agent]
   API --> Scorer[prompt-scorer]
   Ctx[sources/data/context/prompt_methods_context.csv]
+  Methods[sources/data/context/methods/*.md]
   Ctx --> Agent
+  Methods --> Agent
   Ctx --> Scorer
   API --> Store[Optional file store for uploads]
   Agent --> Scorer
@@ -46,6 +48,8 @@ graph TD
   - `POST /v1/sessions/{session_id}/messages` — user message / agent reply
   - `POST /v1/steps/{step_id}/execute` — execute one UI-defined step independently
   - `POST /v1/steps/{step_id}/rerun` — rerun previously executed step and return refreshed output
+  - `GET /v1/methods` — list available prompt methods for dropdown (id, label, model_type tags)
+  - `POST /v1/methods/{method_id}/apply` — apply selected method to current prompt draft
   - `POST /v1/scoring/score` — run ``prompt-scorer.score`` (single prompt)
   - `POST /v1/scoring/compare` — run ``PromptScorer.compare``; returns **before score**, **after score**, **explanations**, **deltas**
   - `POST /v1/uploads/datasets` — upload dataset file for evaluation
@@ -54,6 +58,7 @@ graph TD
 
 - Single-prompt eval body should include ``scoring_phase``: ``"before"`` | ``"after"`` when mirroring agent pre/post hooks (same semantics as **prompt-scorer.score**).
 - ``POST /v1/scoring/compare`` maps to **prompt-scorer.compare** (no ``scoring_phase`` on the request).
+- ``POST /v1/methods/{method_id}/apply`` maps to the agent selected-method apply path and returns transformed prompt text + method metadata.
 
 ## Error contract
 
@@ -66,6 +71,7 @@ graph TD
 
 - **Chat / agent panel:** messages, CO-STAR prompts.
 - **Prompt editor / diff:** compare old vs new; accept/reject controls.
+- **Method dropdown:** list prompt-engineering methods; selection triggers ``/v1/methods/{method_id}/apply`` and updates current prompt candidate.
 - **Score panel:** for **compare** flows, show **both** scores, **each explanation**, and **delta** from ``ComparisonResult`` (same data as ``prompt-scorer.compare``).
 - **Upload widget:** drag-drop + validation feedback.
 

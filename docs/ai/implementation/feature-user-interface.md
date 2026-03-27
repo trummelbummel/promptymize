@@ -27,7 +27,7 @@ feature: user-interface
 - **Primary:** route `/` or `/app` lands in **agent** flow, not settings.
 - **REST:** all agent and scorer interactions use **REST** JSON endpoints (no WebSocket dependency).
 - **Auth:** protect API routes; only **Google-authenticated** sessions (or valid tokens) may call agent/scorer.
-- **Context:** server loads ``sources/data/context/prompt_methods_context.md`` for agent and scorer (same as design).
+- **Context:** server loads ``sources/data/context/prompt_methods_context.csv`` for agent and scorer (same as design), and may load per-method files from ``sources/data/context/methods/`` for direct method-apply actions.
 - **Braintrust:** scoring endpoints call **prompt-scorer** only; scorer uses **stepwise-evaluation** (env from **`.env.example`**).
 - **Compare:** bind “Accept new” / “Keep old” to API calls that update session state.
 - **Scores:** render **before** and **after** ``ScoreResult`` values and **deltas** from ``ComparisonResult``; render `explanation` per score; never truncate without “show more.”

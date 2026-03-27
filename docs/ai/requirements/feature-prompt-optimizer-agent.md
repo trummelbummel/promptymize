@@ -30,6 +30,7 @@ feature: prompt-optimizer-agent
     - **R**esponse — desired output format (e.g. paragraphs, JSON, CSV).
   - **Context-grounded proposals:** After CO-STAR (or sufficient partial input), the agent **proposes prompt improvements** using the **context-engineered** file(s) that summarize **prompt methods** from scraped sources—selecting **best-fitting** methods and **creatively combining** multiple methods where helpful.
   - **Apply on acceptance:** If the user **accepts** a proposal, the agent **rewrites the prompt** by **applying the rules** of the **specific method(s)** referenced in that proposal.
+  - **Direct method application:** If the UI sends a selected method from a dropdown, the agent applies that method's rules to the current prompt-in-progress, preserving existing user intent and reshaping the prompt into the selected method style.
   - **Scoring lifecycle:** Score the user’s prompt **before** any modification and **after** modification, via the **`prompt-scorer`** tool (defined elsewhere; this agent **calls** it, it does not redefine scoring logic here).
 - **Secondary goals**
   - Clear UX copy and state (what was asked, what was proposed, what was applied).
@@ -49,13 +50,14 @@ feature: prompt-optimizer-agent
 - As a **user**, if I **say yes** to a proposal, I want the agent to **modify my prompt** by **applying the rules** from the **specific method(s)** in that proposal.
 - As a **user**, I want the agent to **score my prompt before** it is modified and **after** it has been modified (via **`prompt-scorer`**).
 - As a **user**, I want the agent to generate one **joint CO-STAR extension draft** (all dimensions together, objective-aware), then let me review/approve/edit it in the UI before it is applied.
+- As a **user**, I want to choose one prompt-engineering method from a UI dropdown and have the agent apply that specific method to my current base prompt using the method description/rules.
 
 **Workflows (high level)**
 
 1. User provides initial prompt (optional) and/or starts session.
 2. Agent asks CO-STAR-oriented questions; user may answer partially.
 3. Agent loads or receives **context-engineered** summary (path or injected text per integration).
-4. Agent proposes improvement(s); user accepts/rejects or iterates.
+4. Agent proposes improvement(s); user accepts/rejects or iterates, or explicitly selects a method from the UI dropdown.
 5. On accept: agent applies changes; then scores **after**; **before**-scores occur when appropriate (e.g. at start or before apply—see open items).
 6. Scoring always goes through **`prompt-scorer`** tool contract.
 

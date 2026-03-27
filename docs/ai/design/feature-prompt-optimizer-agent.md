@@ -17,9 +17,12 @@ graph TD
   QA --> Expand[Single-call CO-STAR extension]
   Expand --> Review[UI review and user confirmation]
   CtxFile[sources/data/context/prompt_methods_context.csv]
+  MethodFiles[sources/data/context/methods/*.md]
   CtxFile --> Agent
+  MethodFiles --> Agent
   Agent --> Propose[Proposal generator]
   Propose --> Mix[Method mixing logic]
+  Agent --> DirectApply[Selected-method apply path]
   Agent --> Apply[Prompt rewrite / apply rules]
   Agent --> Scorer[prompt-scorer tool]
   Scorer --> Scores[Scores pre and post]
@@ -28,6 +31,7 @@ graph TD
 
 - **Agent:** orchestrates dialogue, holds session state (answers, current prompt, proposals).
 - **Context file (required):** the agent **loads** ``sources/data/context/prompt_methods_context.csv`` at session start (or per request). Proposals **must** be grounded in this file; **no** agent-only mode without the context file for method selection.
+- **Method files (optional direct path):** the agent may load ``sources/data/context/methods/<method_slug>.md`` when the UI explicitly selects one method for direct application.
 - **prompt-scorer:** external tool (separate feature); agent invokes with **prompt text** + optional metadata; scorer also **loads the same context file** when scoring (see **prompt-scorer** design).
 - **CO-STAR extension step:** once objectives + available CO-STAR inputs are collected, the agent performs **one prompt call** that extends **all CO-STAR dimensions together** (not six isolated calls), then returns a draft for UI verification.
 
@@ -46,6 +50,7 @@ graph TD
   - ``score(prompt: str, scoring_phase: Literal["before", "after"], scorer_name: str, context_path: Path | None = None, method_id: str | None = None, session_id: str | None = None, ...)``
   - Use ``compare(prompt_before, prompt_after, scorer_name=..., ...)`` when the UI or flow needs side-by-side scores (no ``scoring_phase`` on ``compare``).
 - **Agent → context:** file read or injected dependency for testing; filtering by ``model_type`` should happen before proposal generation.
+- **Agent direct-method apply:** when UI sends ``method_id`` from dropdown, agent resolves method file/section and applies its rules directly to the current prompt draft.
 
 ## Error contract
 
@@ -65,6 +70,7 @@ The agent **does not** call Braintrust directly; scorer errors are **user-recove
 - **Retrieval / selection:** map CO-STAR + user prompt to relevant sections in context (LM-assisted or heuristic).
 - **Proposal module:** generate 1..N proposals with cited methods; support **mixing** multiple methods.
 - **Apply module:** transform user prompt given accepted method rules.
+- **Selected-method apply module:** deterministic transform path for UI dropdown selection (single method at a time).
 - **Scoring hooks:** two explicit call sites that invoke ``PromptScorer.score`` with ``scoring_phase="before"`` and ``scoring_phase="after"`` (not ``compare`` unless the flow is explicitly a side-by-side comparison).
 - **Human-in-the-loop gate:** UI confirmation/edit step between CO-STAR extension output and apply step; apply must not run until user accepts.
 

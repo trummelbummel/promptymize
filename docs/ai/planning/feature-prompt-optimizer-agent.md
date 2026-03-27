@@ -29,6 +29,7 @@ feature: prompt-optimizer-agent
 - [x] Task 2.2: Load context-engineered input from ``sources/data/context/prompt_methods_context.csv``; filter rows by target ``model_type`` (plus ``all``) before proposal generation with method citation + mixing.
 - [x] Task 2.3: Apply accepted proposal to user prompt using method rules.
 - [x] Task 2.4: Invoke scorer **before** and **after** modification at defined points.
+- [ ] Task 2.5: Support **direct method selection apply** path from UI dropdown (apply one selected method to current prompt-in-progress using method rule description).
 
 ### Phase 3: Integration & Polish
 - [ ] Task 3.1: CLI or chat entrypoint documentation.

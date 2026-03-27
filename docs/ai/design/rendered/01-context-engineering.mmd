@@ -4,6 +4,8 @@ graph TD
   Summarize --> Sections[Structured Markdown sections per method]
   Sections --> Dedup[DeduplicatePromptSection or successor]
   Dedup --> ContextFile[Merge-latest prompt_methods_context.csv]
+  ContextFile --> Split[Per-method file splitter]
+  Split --> MethodDir[sources/data/context/methods/*.md]
   Config[dspy settings / LM] --> Summarize
   Config --> Dedup
   ContextFile -.->|eval mode optional| Stepwise[stepwise-evaluation]

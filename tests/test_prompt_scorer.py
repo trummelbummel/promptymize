@@ -98,3 +98,40 @@ def test_score_emits_stepwise_when_enabled(tmp_path: Path) -> None:
         )
     mock_eval.assert_called_once()
 
+
+def test_instruction_consistency_detects_contradictions(tmp_path: Path) -> None:
+    context_path = tmp_path / "prompt_methods_context.csv"
+    _write_context_csv(context_path)
+    scorer = PromptScorer()
+
+    result = scorer.score(
+        (
+            "Be concise and brief. "
+            "Provide a detailed and comprehensive explanation. "
+            "Use bullet points. "
+            "Do not use bullet points."
+        ),
+        scoring_phase="before",
+        scorer_name="instruction_consistency",
+        context_path=context_path,
+    )
+    assert result.score < 1.0
+    assert "contradictory instruction" in result.explanation.lower()
+    assert result.metadata["contradiction_count"] >= 1
+    assert result.metadata["contradictions"]
+
+
+def test_instruction_consistency_no_contradiction_scores_high(tmp_path: Path) -> None:
+    context_path = tmp_path / "prompt_methods_context.csv"
+    _write_context_csv(context_path)
+    scorer = PromptScorer()
+
+    result = scorer.score(
+        "Use bullet points and provide concise guidance with one concrete example.",
+        scoring_phase="after",
+        scorer_name="instruction_consistency",
+        context_path=context_path,
+    )
+    assert result.score == 1.0
+    assert "no contradictory instructions" in result.explanation.lower()
+

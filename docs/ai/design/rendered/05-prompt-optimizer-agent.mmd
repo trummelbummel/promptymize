@@ -1,10 +1,15 @@
 graph TD
   User[User] --> Agent[Prompt optimizer agent]
   Agent --> QA[CO-STAR question flow]
+  QA --> Expand[Single-call CO-STAR extension]
+  Expand --> Review[UI review and user confirmation]
   CtxFile[sources/data/context/prompt_methods_context.csv]
+  MethodFiles[sources/data/context/methods/*.md]
   CtxFile --> Agent
+  MethodFiles --> Agent
   Agent --> Propose[Proposal generator]
   Propose --> Mix[Method mixing logic]
+  Agent --> DirectApply[Selected-method apply path]
   Agent --> Apply[Prompt rewrite / apply rules]
   Agent --> Scorer[prompt-scorer tool]
   Scorer --> Scores[Scores pre and post]

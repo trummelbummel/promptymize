@@ -32,6 +32,8 @@ feature: user-interface
 - [ ] Task 2.6: Add **step execution routes** so each UI button triggers one specific backend step independently.
 - [ ] Task 2.7: Add **step rerun routes** that re-execute any prior step and return refreshed output for UI state updates.
 - [ ] Task 2.8: Add dedicated **scoring routes** for score/compare so users can execute scoring independently and view results in UI.
+- [ ] Task 2.9: Add **prompt-method dropdown** populated from context-engineering method outputs (method files/metadata).
+- [ ] Task 2.10: Wire dropdown selection to a dedicated step route that applies the selected method to the current prompt draft and returns transformed prompt text.
 
 ### Phase 3: Integration & Polish
 - [ ] Task 3.1: Error handling, empty states, accessibility pass.
