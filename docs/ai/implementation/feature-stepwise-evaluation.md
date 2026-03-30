@@ -33,7 +33,7 @@ feature: stepwise-evaluation
 ## Integration Points
 **How do pieces connect?**
 
-- **context-engineering:** ``PromptMethodsContext.build_context(emit_context_engineering_eval=True)`` or CLI ``auto-prompt-build-context --eval`` / ``AUTO_PROMPT_CONTEXT_EVAL=1`` — after write, calls ``log_step`` with ``build_context_engineering_record``. **Do not** require Braintrust when eval mode is off.
+- **context-engineering:** ``PromptMethodsContext.build_context(emit_context_engineering_eval=True)`` or CLI ``promptymize-build-context --eval`` / ``AUTO_PROMPT_CONTEXT_EVAL=1`` — after write, calls ``log_step`` with ``build_context_engineering_record``. **Do not** require Braintrust when eval mode is off.
 - **prompt-scorer:** **depends on** this package for Braintrust runs; implements prompt/compare API only—**no** parallel Braintrust client.
 
 ## Error Handling

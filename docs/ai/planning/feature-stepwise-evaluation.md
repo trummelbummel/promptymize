@@ -29,7 +29,7 @@ feature: stepwise-evaluation
 - [x] Task 2.4: Add reusable contradiction-instruction scoring helper (``score_instruction_contradictions``) for scorer profiles and shared eval semantics.
 
 ### Phase 3: Integration & Polish
-- [x] Task 3.1: **Makefile** ``build-context-eval``; CLI ``auto-prompt-build-context --eval`` / ``--eval-run-id``; env ``AUTO_PROMPT_CONTEXT_EVAL``.
+- [x] Task 3.1: **Makefile** ``build-context-eval``; CLI ``promptymize-build-context --eval`` / ``--eval-run-id``; env ``AUTO_PROMPT_CONTEXT_EVAL``.
 - [x] Task 3.2: Tests with **mocked** ``init_logger`` in ``tests/evaluation/test_stepwise.py`` (no network).
 
 ## Dependencies

@@ -37,5 +37,5 @@ def load_braintrust_config_from_env() -> BraintrustConfig:
             "BRAINTRUST_API_KEY is required when stepwise evaluation is enabled. See .env.example.",
         )
     project_id = os.environ.get("BRAINTRUST_PROJECT_ID", "").strip() or None
-    project_name = os.environ.get("BRAINTRUST_PROJECT_NAME", "auto-prompt").strip() or "auto-prompt"
+    project_name = os.environ.get("BRAINTRUST_PROJECT_NAME", "promptymize").strip() or "promptymize"
     return BraintrustConfig(api_key=key, project_id=project_id, project_name=project_name)

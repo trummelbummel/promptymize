@@ -28,7 +28,7 @@ feature: prompt-method-scraper
 - [ ] Task 2.3: PDF download + text extraction → Markdown or documented companion format.
 
 ### Phase 3: Integration & Polish
-- [x] Task 3.1: CLI/Makefile target for “run full scrape from config.” (``auto-prompt-web-scrape batch`` + ``make scrape-batch``).
+- [x] Task 3.1: CLI/Makefile target for “run full scrape from config.” (``promptymize-web-scrape batch`` + ``make scrape-batch``).
 - [x] Task 3.2: Logging + non-zero exit on failed URLs implemented (per-URL stderr lines; run fails if any URL fails).
 
 ## Dependencies

@@ -21,18 +21,18 @@ test: ## Test the code with pytest
 .PHONY: build-context
 build-context: ## Merge into sources/data/context/prompt_methods_context.csv (see docs/ai/planning/feature-context-engineering.md)
 	@echo "🚀 Building prompt-methods context file"
-	@uv run auto-prompt-build-context
+	@uv run promptymize-build-context
 
 .PHONY: build-context-eval
 build-context-eval: ## Same as build-context, then log context_engineering step to Braintrust (requires BRAINTRUST_API_KEY)
 	@echo "🚀 Building context + Braintrust context_engineering eval"
-	@uv run auto-prompt-build-context --eval
+	@uv run promptymize-build-context --eval
 
 
 
 .PHONY: scrape-batch
 scrape-batch: ## Batch scrape from YAML config: make scrape-batch CONFIG=scraper_targets.yaml
-	@uv run auto-prompt-web-scrape batch "$(CONFIG)" --out-root sources/data
+	@uv run promptymize-web-scrape batch "$(CONFIG)" --out-root sources/data
 
 .PHONY: build
 build: clean-build ## Build wheel file
