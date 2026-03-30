@@ -100,19 +100,6 @@ def create_dspy_lm_from_env() -> dspy.LM:
 
     _load_dspy_env_defaults()
 
-    model = os.environ.get(_DSPY_MODEL, "").strip()
-    api_base = os.environ.get(_DSPY_API_BASE, "").strip()
-    api_key = os.environ.get(_DSPY_API_KEY, "").strip()
-
-    if not model:
-        raise ConfigurationError()
-    if not api_base:
-        raise ConfigurationError()
-    if not api_key:
-        raise ConfigurationError()
-
-    litellm_model = normalize_dspy_model(model, api_base=api_base)
-
     temperature_raw = os.environ.get("DSPY_TEMPERATURE", "0.0").strip()
     try:
         temperature = float(temperature_raw)
@@ -124,6 +111,54 @@ def create_dspy_lm_from_env() -> dspy.LM:
         max_tokens = int(max_tokens_raw)
     except ValueError:
         max_tokens = 256
+    model = os.environ.get(_DSPY_MODEL, "").strip()
+
+    if not model:
+        raise ConfigurationError()
+
+    # Prefer using DSPY_API_KEY for Groq when no explicit DSPY_API_BASE is set;
+    # fall back to GROQ_API_KEY for backward compatibility.
+    groq_api_key = ""
+    if not os.environ.get(_DSPY_API_BASE, "").strip():
+        groq_api_key = os.environ.get(_DSPY_API_KEY, "").strip() or os.environ.get("GROQ_API_KEY", "").strip()
+    if groq_api_key:
+        # Prefer DSPy's native Groq client when GROQ_API_KEY is provided.
+        try:
+            return dspy.GROQ(  # type: ignore[attr-defined]
+                model=model,
+                api_key=groq_api_key,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+        except AttributeError as exc:
+            try:
+                return dspy.GroqLM(  # type: ignore[attr-defined]
+                    model=model,
+                    api_key=groq_api_key,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+            except AttributeError:
+                # Groq client not available in this DSPy build; configure Groq via LiteLLM/OpenAI-compatible API.
+                groq_api_base = os.environ.get("GROQ_API_BASE", "").strip() or "https://api.groq.com/openai/v1"
+                return dspy.LM(
+                    model,
+                    model_type="chat",
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    api_base=groq_api_base,
+                    api_key=groq_api_key,
+                )
+
+    api_base = os.environ.get(_DSPY_API_BASE, "").strip()
+    api_key = os.environ.get(_DSPY_API_KEY, "").strip()
+
+    if not api_base:
+        raise ConfigurationError()
+    if not api_key:
+        raise ConfigurationError()
+
+    litellm_model = normalize_dspy_model(model, api_base=api_base)
 
     # Ollama expects endpoints under the root (e.g. /api/generate).
     # If users specify ".../v1", LiteLLM/DSPy can end up calling

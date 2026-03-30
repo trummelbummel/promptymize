@@ -68,7 +68,7 @@ def _load_targets_from_yaml(path: Path) -> list[ScrapeTarget]:
 
 def _fetch_html(*, url: str, timeout_seconds: float) -> str:
     headers = {
-        "User-Agent": "promptymize/1.0 (+https://github.com/trummelbummel/promptymize)",
+        "User-Agent": "auto-prompt/1.0 (+https://github.com/trummelbummel/auto-prompt)",
     }
     try:
         resp = requests.get(url, headers=headers, timeout=timeout_seconds)
@@ -222,7 +222,7 @@ def _run_one(
 
 
 def main(argv: list[str] | None = None) -> None:
-    parser = argparse.ArgumentParser(prog="promptymize-web-scrape")
+    parser = argparse.ArgumentParser(prog="auto-prompt-web-scrape")
     sub = parser.add_subparsers(dest="mode", required=True)
 
     one = sub.add_parser("one", help="Scrape a single URL into one folder's page.md")

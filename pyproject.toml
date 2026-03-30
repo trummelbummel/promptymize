@@ -1,5 +1,5 @@
 [project]
-name = "promptymize"
+name = "auto-prompt"
 version = "0.0.1"
 description = "All models have specific prompt guidelines. This project enables automatic adaptation of prompts to best practices based on documentation and advanced prompt techniques from the literature."
 authors = [{ name = "Theresa Fruhwuerth", email = "theresa.fruhwuerth@gmail.com" }]
@@ -28,14 +28,14 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://trummelbummel.github.io/promptymize/"
-Repository = "https://github.com/trummelbummel/promptymize"
-Documentation = "https://trummelbummel.github.io/promptymize/"
+Homepage = "https://trummelbummel.github.io/auto-prompt/"
+Repository = "https://github.com/trummelbummel/auto-prompt"
+Documentation = "https://trummelbummel.github.io/auto-prompt/"
 
 [project.scripts]
-promptymize-scrape = "auto_prompt.scraping.scrape:main"
-promptymize-web-scrape = "auto_prompt.scraper.web_scraper:main"
-promptymize-build-context = "auto_prompt.promptymization.cli:main"
+auto-prompt-scrape = "auto_prompt.scraping.scrape:main"
+auto-prompt-web-scrape = "auto_prompt.scraper.web_scraper:main"
+auto-prompt-build-context = "auto_prompt.promptymization.cli:main"
 
 [dependency-groups]
 dev = [

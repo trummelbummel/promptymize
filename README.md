@@ -1,22 +1,22 @@
-# promptymize
+# auto-prompt
 
-[![Release](https://img.shields.io/github/v/release/trummelbummel/promptymize)](https://img.shields.io/github/v/release/trummelbummel/promptymize)
-[![Build status](https://img.shields.io/github/actions/workflow/status/trummelbummel/promptymize/main.yml?branch=main)](https://github.com/trummelbummel/promptymize/actions/workflows/main.yml?query=branch%3Amain)
-[![codecov](https://codecov.io/gh/trummelbummel/promptymize/branch/main/graph/badge.svg)](https://codecov.io/gh/trummelbummel/promptymize)
-[![Commit activity](https://img.shields.io/github/commit-activity/m/trummelbummel/promptymize)](https://img.shields.io/github/commit-activity/m/trummelbummel/promptymize)
-[![License](https://img.shields.io/github/license/trummelbummel/promptymize)](https://img.shields.io/github/license/trummelbummel/promptymize)
+[![Release](https://img.shields.io/github/v/release/trummelbummel/auto-prompt)](https://img.shields.io/github/v/release/trummelbummel/auto-prompt)
+[![Build status](https://img.shields.io/github/actions/workflow/status/trummelbummel/auto-prompt/main.yml?branch=main)](https://github.com/trummelbummel/auto-prompt/actions/workflows/main.yml?query=branch%3Amain)
+[![codecov](https://codecov.io/gh/trummelbummel/auto-prompt/branch/main/graph/badge.svg)](https://codecov.io/gh/trummelbummel/auto-prompt)
+[![Commit activity](https://img.shields.io/github/commit-activity/m/trummelbummel/auto-prompt)](https://img.shields.io/github/commit-activity/m/trummelbummel/auto-prompt)
+[![License](https://img.shields.io/github/license/trummelbummel/auto-prompt)](https://img.shields.io/github/license/trummelbummel/auto-prompt)
 
 All models have specific prompt guidelines. This project enables automatic adaptation of prompts to best practices based on documentation and advanced prompt techniques from the literature.
 
-- **Github repository**: <https://github.com/trummelbummel/promptymize/>
-- **Documentation** <https://trummelbummel.github.io/promptymize/>
+- **Github repository**: <https://github.com/trummelbummel/auto-prompt/>
+- **Documentation** <https://trummelbummel.github.io/auto-prompt/>
 
 ## Scrape a documentation page
 
 This project includes a small CLI that fetches a documentation page, converts the main content to Markdown, and writes it to `sources/data/<foldername>/`.
 
 ```bash
-uv run promptymize-scrape \
+uv run auto-prompt-scrape \
   "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices" \
   "claude_prompting_best_practices"
 ```
@@ -40,13 +40,13 @@ There is also a web scraper under `src/scraper/` that writes **text-only** conte
 Single target:
 
 ```bash
-uv run promptymize-web-scrape one "https://example.com/docs/page" "my_folder"
+uv run auto-prompt-web-scrape one "https://example.com/docs/page" "my_folder"
 ```
 
 Batch mode from YAML:
 
 ```bash
-uv run promptymize-web-scrape batch scraper_targets.yaml
+uv run auto-prompt-web-scrape batch scraper_targets.yaml
 ```
 
 YAML format:
@@ -67,7 +67,7 @@ First, create a repository on GitHub with the same name as this project, and the
 git init -b main
 git add .
 git commit -m "init commit"
-git remote add origin git@github.com:trummelbummel/promptymize.git
+git remote add origin git@github.com:trummelbummel/auto-prompt.git
 git push -u origin main
 ```
 

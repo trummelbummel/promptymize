@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
-from auto_prompt.errors import ResourceNotFoundError, ValidationError
 from auto_prompt.promptymization.context_csv import ContextMethodRow, load_context_rows, rows_to_markdown
 
 COSTAR_FIELDS: tuple[str, ...] = (
@@ -73,37 +72,6 @@ class PromptOptimizerAgent:
         """Load and collapse model-filtered context rows into markdown."""
 
         return rows_to_markdown(self.load_context_rows())
-
-    def apply_selected_method(self, *, method_id: str, user_prompt: str) -> str:
-        """
-        Apply one selected prompt-engineering method to the current prompt draft.
-
-        The selected method is resolved from model-filtered context rows.
-        """
-
-        wanted = method_id.strip().lower()
-        if not wanted:
-            raise ValidationError("method_id is required")
-
-        rows = self.load_context_rows()
-        selected = [row for row in rows if row.method_name.strip().lower() == wanted]
-        if not selected:
-            raise ResourceNotFoundError("Selected method was not found in context rows.")
-
-        base_prompt = user_prompt.strip()
-        method_markdown = rows_to_markdown(selected).strip()
-        if not method_markdown:
-            raise ResourceNotFoundError("Selected method content is empty.")
-
-        lines: list[str] = []
-        if base_prompt:
-            lines.append(base_prompt)
-            lines.append("")
-        lines.append("## Applied prompt method")
-        lines.append(f"- method_id: {selected[0].method_name}")
-        lines.append("")
-        lines.append(method_markdown)
-        return "\n".join(lines).strip() + "\n"
 
     def generate_costar_extension(
         self,

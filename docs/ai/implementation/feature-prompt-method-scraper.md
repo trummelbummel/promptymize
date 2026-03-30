@@ -11,7 +11,7 @@ feature: prompt-method-scraper
 **How do we get started?**
 
 - Install project deps per `pyproject.toml` / `Makefile`.
-- Point scraper at `promptymize/scraper_targets.yaml` (or configured path).
+- Point scraper at `auto-prompt/scraper_targets.yaml` (or configured path).
 
 ## Code Structure
 **How is the code organized?**

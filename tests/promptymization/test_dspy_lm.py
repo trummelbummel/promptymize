@@ -24,6 +24,35 @@ def test_create_dspy_lm_from_env_uses_env_vars(monkeypatch: object) -> None:
     assert lm.kwargs["api_base"] == "http://localhost:11434"
 
 
+def test_create_dspy_lm_from_env_prefers_groq_when_key_present(monkeypatch: object) -> None:
+    monkeypatch.setenv("DSPY_MODEL", "openai/gpt-oss-120b")  # type: ignore[attr-defined]
+    monkeypatch.setenv("DSPY_API_KEY", "test-groq")  # type: ignore[attr-defined]
+
+    # Ensure legacy DSPY_API_BASE does not interfere with Groq configuration.
+    monkeypatch.delenv("DSPY_API_BASE", raising=False)  # type: ignore[attr-defined]
+
+    lm = create_dspy_lm_from_env()
+    # Either a native Groq client or a LiteLLM-backed LM using DSPY_API_KEY.
+    assert getattr(lm, "model", None)
+
+
+def test_create_dspy_lm_from_env_groq_openai_style_base(monkeypatch: object) -> None:
+    """
+    Integration-style config test for Groq OpenAI-compatible endpoint.
+
+    Verifies that when DSPY_MODEL and DSPY_API_BASE are configured as in `.env.example`,
+    the LM is constructed with those values (no network calls).
+    """
+
+    monkeypatch.setenv("DSPY_MODEL", "openai/gpt-oss-120b")  # type: ignore[attr-defined]
+    monkeypatch.setenv("DSPY_API_BASE", "https://api.groq.com/openai/v1")  # type: ignore[attr-defined]
+    monkeypatch.setenv("DSPY_API_KEY", "test-groq")  # type: ignore[attr-defined]
+
+    lm = create_dspy_lm_from_env()
+    assert lm.model == "openai/gpt-oss-120b"
+    assert lm.kwargs.get("api_base") == "https://api.groq.com/openai/v1"
+
+
 def test_create_dspy_lm_from_env_missing_model_raises(monkeypatch: object) -> None:
     monkeypatch.delenv("DSPY_MODEL", raising=False)  # type: ignore[attr-defined]
     monkeypatch.setenv("DSPY_API_BASE", "http://localhost:11434/v1")  # type: ignore[attr-defined]

@@ -35,7 +35,7 @@ feature: context-engineering
 - [ ] Task 2.9: Add deterministic slug/collision policy for method filenames and idempotent regeneration on reruns.
 
 ### Phase 3: Integration & Polish
-- [x] Task 3.1: Run pipeline via ``make build-context`` or ``uv run promptymize-build-context`` (see ``cli.py``, ``pyproject.toml`` `[project.scripts]`).
+- [x] Task 3.1: Run pipeline via ``make build-context`` or ``uv run auto-prompt-build-context`` (see ``cli.py``, ``pyproject.toml`` `[project.scripts]`).
 - [x] Task 3.2: Tests — ``tests/promptymization/test_context_generation.py``, ``test_dedupe_markdown.py`` (mocked summarizer); extend when adding LM integration tests.
 - [x] Task 3.3: Provide CSV context loader helpers (``context_csv.py``) so downstream consumers can filter by ``model_type`` and reconstruct filtered markdown context.
 

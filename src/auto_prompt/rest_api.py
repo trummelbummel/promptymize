@@ -4,7 +4,6 @@ import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urlsplit
 
 from auto_prompt.errors import ConfigurationError, DependencyUnavailableError, ResourceNotFoundError, ValidationError
 from auto_prompt.prompt_optimizer.agent import PromptOptimizerAgent
@@ -56,39 +55,28 @@ class RestApiService:
     def handle(self, *, method: str, path: str, body: dict[str, Any] | None = None) -> tuple[int, dict[str, Any]]:
         body = body or {}
         method = method.upper().strip()
-        if method not in {"POST", "GET"}:
-            return 405, {"error_code": "METHOD_NOT_ALLOWED", "message": "Only GET and POST are supported.", "detail": {}}
-        split = urlsplit(path)
-        route_path = split.path
-        query = parse_qs(split.query)
+        if method != "POST":
+            return 405, {"error_code": "METHOD_NOT_ALLOWED", "message": "Only POST is supported.", "detail": {}}
 
         try:
-            if method == "GET" and route_path == "/v1/methods":
-                enriched = dict(body)
-                if "session_id" not in enriched and "session_id" in query:
-                    enriched["session_id"] = query["session_id"][0]
-                return 200, self._list_methods(enriched)
-            if route_path == "/v1/sessions":
+            if path == "/v1/sessions":
                 return 200, self._create_session(body)
-            if route_path.endswith("/messages") and route_path.startswith("/v1/sessions/"):
-                session_id = route_path.split("/")[3]
+            if path.endswith("/messages") and path.startswith("/v1/sessions/"):
+                session_id = path.split("/")[3]
                 return 200, self._post_message(session_id, body)
-            if route_path.startswith("/v1/methods/") and route_path.endswith("/apply"):
-                method_id = route_path.split("/")[3]
-                return 200, self._apply_method(method_id, body)
-            if route_path.startswith("/v1/steps/") and route_path.endswith("/execute"):
-                step_id = route_path.split("/")[3]
+            if path.startswith("/v1/steps/") and path.endswith("/execute"):
+                step_id = path.split("/")[3]
                 return 200, self._execute_step(step_id, body)
-            if route_path.startswith("/v1/steps/") and route_path.endswith("/rerun"):
-                step_id = route_path.split("/")[3]
+            if path.startswith("/v1/steps/") and path.endswith("/rerun"):
+                step_id = path.split("/")[3]
                 return 200, self._rerun_step(step_id, body)
-            if route_path == "/v1/scoring/score":
+            if path == "/v1/scoring/score":
                 return 200, self._score(body)
-            if route_path == "/v1/scoring/compare":
+            if path == "/v1/scoring/compare":
                 return 200, self._compare(body)
-            if route_path == "/v1/uploads/datasets":
+            if path == "/v1/uploads/datasets":
                 return 200, self._upload_dataset(body)
-            return 404, {"error_code": "NOT_FOUND", "message": "Route not found.", "detail": {"path": route_path}}
+            return 404, {"error_code": "NOT_FOUND", "message": "Route not found.", "detail": {"path": path}}
         except ValidationError as exc:
             return 400, {"error_code": "VALIDATION_ERROR", "message": str(exc), "detail": {}}
         except ResourceNotFoundError as exc:
@@ -103,8 +91,6 @@ class RestApiService:
         session_id = str(uuid.uuid4())
         adapter = ScorerAdapterForAgent(self._scorer, self.context_path)
         agent = PromptOptimizerAgent(model_type=model_type, context_path=self.context_path, scorer=adapter)
-        if not agent.load_context_rows():
-            raise ResourceNotFoundError("No context rows available for requested model type.")
         self._sessions[session_id] = SessionState(session_id=session_id, model_type=model_type, agent=agent)
         return {"session_id": session_id, "model_type": model_type}
 
@@ -182,31 +168,6 @@ class RestApiService:
         item = {"upload_id": upload_id, "filename": filename, "rows": rows}
         session.uploads.append(item)
         return {"session_id": session.session_id, "upload_id": upload_id, "row_count": len(rows)}
-
-    def _list_methods(self, body: dict[str, Any]) -> dict[str, Any]:
-        session = self._get_session(str(body.get("session_id", "")).strip())
-        rows = session.agent.load_context_rows()
-        dedup: dict[str, set[str]] = {}
-        for row in rows:
-            name = row.method_name.strip()
-            if not name:
-                continue
-            dedup.setdefault(name, set()).add(row.model_type.strip().lower())
-
-        methods = [
-            {"method_id": name, "label": name, "model_types": sorted(mt for mt in mts if mt)}
-            for name, mts in sorted(dedup.items())
-        ]
-        return {"session_id": session.session_id, "methods": methods}
-
-    def _apply_method(self, method_id: str, body: dict[str, Any]) -> dict[str, Any]:
-        session = self._get_session(str(body.get("session_id", "")).strip())
-        payload = dict(body.get("payload", {}) or {})
-        user_prompt = str(payload.get("user_prompt", "")).strip()
-        updated_prompt = session.agent.apply_selected_method(method_id=method_id, user_prompt=user_prompt)
-        result = {"method_id": method_id, "updated_prompt": updated_prompt}
-        session.step_history.append({"step_id": "apply_method", "payload": payload, "result": result})
-        return {"session_id": session.session_id, "result": result}
 
     def _score_internal(self, session: SessionState, payload: dict[str, Any]) -> ScoreResult:
         prompt = str(payload.get("prompt", "")).strip()

@@ -31,7 +31,7 @@ feature: model-summarizer
 - [ ] Task 2.4: Add unit tests for at least one real model id per major provider (e.g. one HF model card per family), with network interactions mocked.
 
 ### Phase 3: Integration & Polish
-- [ ] Task 3.1: Add a CLI or REST entrypoint (e.g. `promptymize-model-summary` or `POST /v1/models/{model_id}/summary`) that returns the model summary.
+- [ ] Task 3.1: Add a CLI or REST entrypoint (e.g. `auto-prompt-model-summary` or `POST /v1/models/{model_id}/summary`) that returns the model summary.
 - [ ] Task 3.2: Integrate summaries into the **user-interface** (optional): display benchmarks, mapped tasks, and post-training tags.
 
 ## Dependencies
