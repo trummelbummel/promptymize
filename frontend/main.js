@@ -87,6 +87,67 @@ function readDraftFields() {
   return edited_fields;
 }
 
+/**
+ * Push the canonical working prompt into downstream steps (method apply, scoring, compare).
+ */
+function syncWorkingPrompt(text) {
+  const t = String(text || "").trim();
+  const finalEl = document.getElementById("finalPromptPreview");
+  if (finalEl) {
+    finalEl.value = t;
+  }
+  document.getElementById("methodBasePromptInput").value = t;
+  document.getElementById("scorePromptInput").value = t;
+  document.getElementById("compareAfterInput").value = t;
+}
+
+function showDraftSection() {
+  document.getElementById("costarDraftSection").classList.remove("hidden");
+}
+
+async function executeCostarExtend() {
+  const validation = document.getElementById("costarValidation");
+  validation.textContent = "";
+  requireSession();
+  const err = validateCostarForm();
+  if (err) {
+    validation.textContent = err;
+    return null;
+  }
+  const objectives = document.getElementById("costarObjectives").value.trim();
+  const data = await apiCall("POST", "/v1/steps/costar_extend/execute", {
+    session_id: state.sessionId,
+    payload: {
+      objectives,
+      current_answers: collectCostarAnswers(),
+    },
+  });
+  const draft = data.result && data.result.draft;
+  if (draft) {
+    fillDraftFields(draft);
+    showDraftSection();
+  }
+  setOutput("costarOutput", data);
+  return data;
+}
+
+async function executeApplyExtension() {
+  requireSession();
+  const data = await apiCall("POST", "/v1/steps/apply_extension/execute", {
+    session_id: state.sessionId,
+    payload: {
+      user_prompt: document.getElementById("basePromptInput").value,
+      edited_fields: readDraftFields(),
+    },
+  });
+  setOutput("costarOutput", data);
+  const updated = data.result && data.result.updated_prompt;
+  if (updated) {
+    syncWorkingPrompt(updated);
+  }
+  return data;
+}
+
 document.getElementById("createSessionBtn").addEventListener("click", async () => {
   try {
     const modelType = document.getElementById("modelType").value.trim() || "all";
@@ -99,29 +160,20 @@ document.getElementById("createSessionBtn").addEventListener("click", async () =
 });
 
 document.getElementById("costarExtendBtn").addEventListener("click", async () => {
-  const validation = document.getElementById("costarValidation");
-  validation.textContent = "";
   try {
-    requireSession();
-    const err = validateCostarForm();
-    if (err) {
-      validation.textContent = err;
+    await executeCostarExtend();
+  } catch (err) {
+    setOutput("costarOutput", String(err.message || err));
+  }
+});
+
+document.getElementById("runCostarPipelineBtn").addEventListener("click", async () => {
+  try {
+    const first = await executeCostarExtend();
+    if (!first) {
       return;
     }
-    const objectives = document.getElementById("costarObjectives").value.trim();
-    const data = await apiCall("POST", "/v1/steps/costar_extend/execute", {
-      session_id: state.sessionId,
-      payload: {
-        objectives,
-        current_answers: collectCostarAnswers(),
-      },
-    });
-    const draft = data.result && data.result.draft;
-    if (draft) {
-      fillDraftFields(draft);
-      document.getElementById("costarDraftSection").classList.remove("hidden");
-    }
-    setOutput("costarOutput", data);
+    await executeApplyExtension();
   } catch (err) {
     setOutput("costarOutput", String(err.message || err));
   }
@@ -129,15 +181,7 @@ document.getElementById("costarExtendBtn").addEventListener("click", async () =>
 
 document.getElementById("applyCostarBtn").addEventListener("click", async () => {
   try {
-    requireSession();
-    const data = await apiCall("POST", "/v1/steps/apply_extension/execute", {
-      session_id: state.sessionId,
-      payload: {
-        user_prompt: document.getElementById("basePromptInput").value,
-        edited_fields: readDraftFields(),
-      },
-    });
-    setOutput("costarOutput", data);
+    await executeApplyExtension();
   } catch (err) {
     setOutput("costarOutput", String(err.message || err));
   }

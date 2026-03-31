@@ -69,3 +69,109 @@ button {
 .hidden {
   display: none;
 }
+
+.lead {
+  font-size: 15px;
+  line-height: 1.5;
+  color: #333;
+  margin: 0 0 18px;
+}
+
+.pipeline-step h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 0;
+}
+
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.status-line {
+  font-size: 13px;
+  color: #333;
+  margin: 8px 0 0;
+}
+
+.costar-letters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 10px 0 14px;
+}
+
+.costar-letters .letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.costar-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 720px) {
+  .costar-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.costar-field label .dim {
+  display: inline-block;
+  min-width: 1.2em;
+  font-weight: 800;
+  color: #2563eb;
+}
+
+.step-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.btn-primary {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.btn-secondary {
+  background: #f1f5f9;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+}
+
+code {
+  font-size: 12px;
+  background: #f1f5f9;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+textarea[readonly] {
+  background: #f8fafc;
+  color: #0f172a;
+}

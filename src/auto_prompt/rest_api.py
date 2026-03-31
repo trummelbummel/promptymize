@@ -4,11 +4,24 @@ import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from auto_prompt.errors import ConfigurationError, DependencyUnavailableError, ResourceNotFoundError, ValidationError
 from auto_prompt.prompt_optimizer.agent import COSTAR_FIELDS, PromptOptimizerAgent
 from auto_prompt.prompt_scorer import ComparisonResult, PromptScorer, ScoreResult
+
+
+def _parse_method_apply_path(path_only: str) -> str | None:
+    """Return method id from ``/v1/methods/{id}/apply`` or ``None``."""
+
+    prefix = "/v1/methods/"
+    suffix = "/apply"
+    if not (path_only.startswith(prefix) and path_only.endswith(suffix)):
+        return None
+    mid = path_only[len(prefix) : -len(suffix)].strip()
+    if not mid:
+        return None
+    return unquote(mid)
 
 
 @dataclass
@@ -85,6 +98,9 @@ class RestApiService:
                 return 200, self._compare(body)
             if path_only == "/v1/uploads/datasets":
                 return 200, self._upload_dataset(body)
+            method_apply_id = _parse_method_apply_path(path_only)
+            if method_apply_id is not None:
+                return 200, self._apply_prompt_method(body, method_id=method_apply_id)
             return 404, {"error_code": "NOT_FOUND", "message": "Route not found.", "detail": {"path": path_only}}
         except ValidationError as exc:
             return 400, {"error_code": "VALIDATION_ERROR", "message": str(exc), "detail": {}}
@@ -112,6 +128,41 @@ class RestApiService:
             seen.add(name)
             methods.append({"method_id": name, "label": name})
         return {"session_id": session.session_id, "methods": methods}
+
+    def _apply_prompt_method(self, body: dict[str, Any], *, method_id: str) -> dict[str, Any]:
+        """
+        Reshape ``user_prompt`` using the selected method's rows from the context CSV.
+
+        Returns a ``shaped_prompt`` that prepends structure and appends the method rules
+        as Markdown (no LM call in this MVP).
+        """
+
+        session = self._get_session(str(body.get("session_id", "")).strip())
+        payload = dict(body.get("payload", {}) or {})
+        user_prompt = str(payload.get("user_prompt", "")).strip()
+        if not user_prompt:
+            raise ValidationError("user_prompt is required in payload")
+
+        wanted = method_id.strip()
+        rows = [
+            r
+            for r in session.agent.load_context_rows()
+            if r.method_name.strip().lower() == wanted.lower()
+        ]
+        if not rows:
+            raise ResourceNotFoundError(f"Method {wanted!r} not found in context for this session.")
+
+        rules_md = "\n\n".join(r.section_markdown.strip() for r in rows if r.section_markdown.strip())
+        shaped = (
+            f"# Prompt shaped with method: {rows[0].method_name}\n\n"
+            f"## Your prompt\n{user_prompt}\n\n"
+            f"## Method rules (from context library)\n{rules_md}\n"
+        )
+        return {
+            "session_id": session.session_id,
+            "method_id": rows[0].method_name,
+            "shaped_prompt": shaped,
+        }
 
     def _create_session(self, body: dict[str, Any]) -> dict[str, Any]:
         model_type = str(body.get("model_type", "all")).strip().lower() or "all"
