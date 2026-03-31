@@ -19,6 +19,9 @@ test: ## Test the code with pytest
 	@uv run python -m pytest --doctest-modules
 
 DATA_ROOT ?= sources/data
+BACKEND_HOST ?= 127.0.0.1
+BACKEND_PORT ?= 8000
+UI_PORT ?= 5173
 
 .PHONY: build-context
 build-context: ## Merge into <DATA_ROOT>/context/prompt_methods_context.csv (default DATA_ROOT=sources/data)
@@ -39,6 +42,22 @@ build-context-dev: ## Build context from development fixtures under tests/data/c
 .PHONY: scrape-batch
 scrape-batch: ## Batch scrape from YAML config: make scrape-batch CONFIG=scraper_targets.yaml
 	@uv run auto-prompt-web-scrape batch "$(CONFIG)" --out-root sources/data
+
+.PHONY: backend
+backend: ## Run local REST backend on BACKEND_HOST:BACKEND_PORT
+	@echo "🚀 Starting backend on http://$(BACKEND_HOST):$(BACKEND_PORT)"
+	@uv run python scripts/run_backend.py --host "$(BACKEND_HOST)" --port "$(BACKEND_PORT)"
+
+.PHONY: ui
+ui: ## Serve frontend static UI on UI_PORT
+	@echo "🚀 Serving UI at http://127.0.0.1:$(UI_PORT)"
+	@python -m http.server "$(UI_PORT)" --directory frontend
+
+.PHONY: dev-ui
+dev-ui: ## Print local UI+backend run instructions
+	@echo "Run in terminal 1: make backend BACKEND_PORT=$(BACKEND_PORT)"
+	@echo "Run in terminal 2: make ui UI_PORT=$(UI_PORT)"
+	@echo "Then open: http://127.0.0.1:$(UI_PORT)"
 
 .PHONY: build
 build: clean-build ## Build wheel file

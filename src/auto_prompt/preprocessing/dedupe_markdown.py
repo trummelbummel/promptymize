@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass, field
 
 from auto_prompt.preprocessing.preprocessing import HtmlPreprocessor
 
@@ -30,11 +31,11 @@ def exact_dedupe_prompt_method_markdown(markdown: str) -> str:
     seen_preamble: set[str] = set()
 
     for raw in sections:
-        block = raw.strip()
-        if not block:
+        block = _normalize_block(raw)
+        if block == "":
             continue
         lines = block.splitlines()
-        first = lines[0].strip() if lines else ""
+        first = _header_line(lines)
         if first and _ATX_HEADER.match(first):
             if first not in by_header:
                 header_order.append(first)
@@ -45,6 +46,28 @@ def exact_dedupe_prompt_method_markdown(markdown: str) -> str:
             seen_preamble.add(block)
             preambles.append(block)
 
+    out = _render_deduped_markdown(
+        preambles=preambles,
+        header_order=header_order,
+        by_header=by_header,
+    )
+    return out
+
+
+def _normalize_block(raw: str) -> str:
+    return raw.strip()
+
+
+def _header_line(lines: list[str]) -> str:
+    return lines[0].strip() if lines else ""
+
+
+def _render_deduped_markdown(
+    *,
+    preambles: list[str],
+    header_order: list[str],
+    by_header: dict[str, "_SectionMerge"],
+) -> str:
     parts: list[str] = []
     for pre in preambles:
         parts.append(pre)
@@ -53,20 +76,19 @@ def exact_dedupe_prompt_method_markdown(markdown: str) -> str:
     for h in header_order:
         merge = by_header[h]
         parts.append(h)
-        for line in merge.lines_out():
-            parts.append(line)
+        parts.extend(merge.lines_out())
         parts.append("")
 
     out = "\n".join(parts).strip()
     return out + "\n" if out else ""
 
 
+@dataclass(slots=True)
 class _SectionMerge:
     """Collect unique lines under one header."""
 
-    def __init__(self) -> None:
-        self._seen: set[str] = set()
-        self._ordered: list[str] = []
+    _seen: set[str] = field(default_factory=set)
+    _ordered: list[str] = field(default_factory=list)
 
     def add_lines(self, body_lines: list[str]) -> None:
         for line in body_lines:

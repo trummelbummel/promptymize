@@ -4,7 +4,7 @@ import argparse
 import os
 from pathlib import Path
 
-from auto_prompt.preprocessing.context_engineering import PromptMethodsContext
+from auto_prompt.promptymization.context_generation import PromptMethodsContext
 
 
 def main() -> None:
