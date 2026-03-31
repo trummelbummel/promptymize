@@ -4,6 +4,7 @@ import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 
 from auto_prompt.errors import ConfigurationError, DependencyUnavailableError, ResourceNotFoundError, ValidationError
 from auto_prompt.prompt_optimizer.agent import COSTAR_FIELDS, PromptOptimizerAgent
@@ -55,28 +56,36 @@ class RestApiService:
     def handle(self, *, method: str, path: str, body: dict[str, Any] | None = None) -> tuple[int, dict[str, Any]]:
         body = body or {}
         method = method.upper().strip()
-        if method != "POST":
-            return 405, {"error_code": "METHOD_NOT_ALLOWED", "message": "Only POST is supported.", "detail": {}}
+        parsed = urlparse(path)
+        path_only = parsed.path
+        query = parse_qs(parsed.query)
 
         try:
-            if path == "/v1/sessions":
+            if method == "GET":
+                if path_only == "/v1/methods":
+                    return 200, self._list_methods(query)
+                return 404, {"error_code": "NOT_FOUND", "message": "Route not found.", "detail": {"path": path_only}}
+            if method != "POST":
+                return 405, {"error_code": "METHOD_NOT_ALLOWED", "message": "Only POST is supported.", "detail": {}}
+
+            if path_only == "/v1/sessions":
                 return 200, self._create_session(body)
-            if path.endswith("/messages") and path.startswith("/v1/sessions/"):
-                session_id = path.split("/")[3]
+            if path_only.endswith("/messages") and path_only.startswith("/v1/sessions/"):
+                session_id = path_only.split("/")[3]
                 return 200, self._post_message(session_id, body)
-            if path.startswith("/v1/steps/") and path.endswith("/execute"):
-                step_id = path.split("/")[3]
+            if path_only.startswith("/v1/steps/") and path_only.endswith("/execute"):
+                step_id = path_only.split("/")[3]
                 return 200, self._execute_step(step_id, body)
-            if path.startswith("/v1/steps/") and path.endswith("/rerun"):
-                step_id = path.split("/")[3]
+            if path_only.startswith("/v1/steps/") and path_only.endswith("/rerun"):
+                step_id = path_only.split("/")[3]
                 return 200, self._rerun_step(step_id, body)
-            if path == "/v1/scoring/score":
+            if path_only == "/v1/scoring/score":
                 return 200, self._score(body)
-            if path == "/v1/scoring/compare":
+            if path_only == "/v1/scoring/compare":
                 return 200, self._compare(body)
-            if path == "/v1/uploads/datasets":
+            if path_only == "/v1/uploads/datasets":
                 return 200, self._upload_dataset(body)
-            return 404, {"error_code": "NOT_FOUND", "message": "Route not found.", "detail": {"path": path}}
+            return 404, {"error_code": "NOT_FOUND", "message": "Route not found.", "detail": {"path": path_only}}
         except ValidationError as exc:
             return 400, {"error_code": "VALIDATION_ERROR", "message": str(exc), "detail": {}}
         except ResourceNotFoundError as exc:
@@ -85,6 +94,24 @@ class RestApiService:
             return 503, {"error_code": "CONFIGURATION_ERROR", "message": str(exc), "detail": {}}
         except DependencyUnavailableError as exc:
             return 502, {"error_code": "DEPENDENCY_UNAVAILABLE", "message": str(exc), "detail": {}}
+
+    def _list_methods(self, query: dict[str, list[str]]) -> dict[str, Any]:
+        """Return distinct prompt-method names from the session's filtered context CSV rows."""
+
+        raw = (query.get("session_id") or [""])[0].strip()
+        if not raw:
+            raise ValidationError("session_id is required")
+        session = self._get_session(raw)
+        rows = session.agent.load_context_rows()
+        seen: set[str] = set()
+        methods: list[dict[str, str]] = []
+        for row in rows:
+            name = row.method_name.strip()
+            if not name or name in seen:
+                continue
+            seen.add(name)
+            methods.append({"method_id": name, "label": name})
+        return {"session_id": session.session_id, "methods": methods}
 
     def _create_session(self, body: dict[str, Any]) -> dict[str, Any]:
         model_type = str(body.get("model_type", "all")).strip().lower() or "all"

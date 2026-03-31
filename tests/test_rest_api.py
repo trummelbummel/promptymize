@@ -108,6 +108,21 @@ def test_rest_api_scoring_routes(tmp_path: Path) -> None:
         assert "delta" in compare_body["comparison_result"]
 
 
+def test_rest_api_get_methods_returns_distinct_names(tmp_path: Path) -> None:
+    context_path = tmp_path / "prompt_methods_context.csv"
+    _write_context_csv(context_path)
+    api = RestApiService(context_path=context_path)
+    _, session = api.handle(method="POST", path="/v1/sessions", body={"model_type": "gpt"})
+    sid = session["session_id"]
+
+    code, body = api.handle(method="GET", path=f"/v1/methods?session_id={sid}", body={})
+    assert code == 200
+    assert body["session_id"] == sid
+    labels = {m["label"] for m in body["methods"]}
+    assert "Universal" in labels
+    assert "GPT JSON" in labels
+
+
 def test_rest_api_upload_route(tmp_path: Path) -> None:
     context_path = tmp_path / "prompt_methods_context.csv"
     _write_context_csv(context_path)

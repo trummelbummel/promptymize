@@ -56,7 +56,8 @@ def main() -> None:
             if self.path == "/health":
                 self._send_json(HTTPStatus.OK, {"status": "ok"})
                 return
-            self._send_json(HTTPStatus.NOT_FOUND, {"error_code": "NOT_FOUND", "message": "Route not found."})
+            status, payload = service.handle(method="GET", path=self.path, body={})
+            self._send_json(status, payload)
 
         def do_POST(self) -> None:  # noqa: N802
             length = int(self.headers.get("Content-Length", "0"))
