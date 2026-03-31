@@ -10,6 +10,7 @@ dependencies = [
     "beautifulsoup4>=4.13.0",
     "braintrust>=0.10.0",
     "dspy>=3.0.3",
+    "groq>=1.1.2",
     "markdownify>=1.2.0",
     "playwright>=1.52.0",
     "pyyaml>=6.0.0",
