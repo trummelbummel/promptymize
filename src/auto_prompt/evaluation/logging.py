@@ -11,7 +11,48 @@ from braintrust import init_logger
 from auto_prompt.errors import ConfigurationError, DependencyUnavailableError
 from auto_prompt.evaluation.config import BraintrustConfig, load_braintrust_config_from_env
 from auto_prompt.evaluation.records import EvalRecord
-from auto_prompt.evaluation.steps import StepId
+from auto_prompt.evaluation.steps import STEP_ORDER, StepId
+
+_EMITTER_META = {"sdk": "braintrust", "emitter": "auto_prompt.evaluation"}
+
+
+def _run_id(run_id: str | None) -> str:
+    """Return ``run_id`` or a new UUID4 string when omitted."""
+
+    return run_id or str(uuid.uuid4())
+
+
+def _sha256_hex(text: str) -> str:
+    """Hex-encoded SHA-256 of ``text`` (UTF-8)."""
+
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _text_excerpt(text: str, *, max_len: int = 2000) -> str:
+    """Return ``text`` unchanged if short, else a prefix of length ``max_len``."""
+
+    if len(text) <= max_len:
+        return text
+    return text[:max_len]
+
+
+def _merge_emitter_metadata(extra: dict[str, Any] | None) -> dict[str, Any]:
+    """Emitter fields for Braintrust rows, merged with optional ``extra``."""
+
+    if not extra:
+        return dict(_EMITTER_META)
+    return {**_EMITTER_META, **extra}
+
+
+def _span_metadata(record: EvalRecord) -> dict[str, Any]:
+    """Span ``metadata`` payload: record metadata plus optional labels and notes."""
+
+    meta: dict[str, Any] = dict(record.metadata)
+    if record.labels:
+        meta["labels"] = record.labels
+    if record.notes:
+        meta["notes"] = record.notes
+    return meta
 
 
 def log_step(
@@ -33,10 +74,9 @@ def log_step(
     """
 
     cfg = config if config is not None else load_braintrust_config_from_env()
-    if record.step_id in {"context_engineering", "scraper_markdown", "agent_turn", "end_to_end"}:
-        _log_record(record, cfg)
-        return
-    raise ConfigurationError(f"Unsupported step_id for logging: {record.step_id!r}")
+    if record.step_id not in STEP_ORDER:
+        raise ConfigurationError(f"Unsupported step_id for logging: {record.step_id!r}")
+    _log_record(record, cfg)
 
 
 def _log_record(record: EvalRecord, config: BraintrustConfig) -> None:
@@ -50,11 +90,7 @@ def _log_record(record: EvalRecord, config: BraintrustConfig) -> None:
             set_current=False,
         )
         name = f"{record.step_id}:{record.run_id}"
-        meta: dict[str, Any] = dict(record.metadata)
-        if record.labels:
-            meta["labels"] = record.labels
-        if record.notes:
-            meta["notes"] = record.notes
+        meta = _span_metadata(record)
         with logger.start_span(name=name) as span:
             span.log(
                 input={"step_id": record.step_id, **record.inputs},
@@ -119,9 +155,9 @@ def build_context_engineering_record(
     :return: Record ready for :func:`log_step`.
     """
 
-    rid = run_id or str(uuid.uuid4())
-    digest = hashlib.sha256(merged_body.encode("utf-8")).hexdigest()
-    excerpt = merged_body[:2000] if len(merged_body) > 2000 else merged_body
+    rid = _run_id(run_id)
+    digest = _sha256_hex(merged_body)
+    excerpt = _text_excerpt(merged_body)
     return EvalRecord(
         step_id="context_engineering",
         run_id=rid,
@@ -136,7 +172,7 @@ def build_context_engineering_record(
             "merged_body_chars": len(merged_body),
             "merged_body_excerpt": excerpt,
         },
-        metadata={"sdk": "braintrust", "emitter": "auto_prompt.evaluation"},
+        metadata=_merge_emitter_metadata(),
     )
 
 
@@ -156,8 +192,8 @@ def build_agent_turn_record(
 ) -> EvalRecord:
     """Construct a record for one prompt-scorer invocation."""
 
-    rid = run_id or str(uuid.uuid4())
-    prompt_digest = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
+    rid = _run_id(run_id)
+    prompt_digest = _sha256_hex(prompt)
     return EvalRecord(
         step_id="agent_turn",
         run_id=rid,
@@ -175,11 +211,7 @@ def build_agent_turn_record(
             "score": float(score),
             "explanation": explanation,
         },
-        metadata={
-            "sdk": "braintrust",
-            "emitter": "auto_prompt.evaluation",
-            **(metadata or {}),
-        },
+        metadata=_merge_emitter_metadata(metadata),
     )
 
 
@@ -194,9 +226,9 @@ def build_scraper_markdown_record(
 ) -> EvalRecord:
     """Construct a record for one scraper markdown output."""
 
-    rid = run_id or str(uuid.uuid4())
-    digest = hashlib.sha256(markdown_body.encode("utf-8")).hexdigest()
-    excerpt = markdown_body[:2000] if len(markdown_body) > 2000 else markdown_body
+    rid = _run_id(run_id)
+    digest = _sha256_hex(markdown_body)
+    excerpt = _text_excerpt(markdown_body)
     return EvalRecord(
         step_id="scraper_markdown",
         run_id=rid,
@@ -210,11 +242,7 @@ def build_scraper_markdown_record(
             "markdown_chars": len(markdown_body),
             "markdown_excerpt": excerpt,
         },
-        metadata={
-            "sdk": "braintrust",
-            "emitter": "auto_prompt.evaluation",
-            **(metadata or {}),
-        },
+        metadata=_merge_emitter_metadata(metadata),
     )
 
 
@@ -227,9 +255,9 @@ def build_end_to_end_record(
 ) -> EvalRecord:
     """Construct a record for one end-to-end user session trace."""
 
-    rid = run_id or str(uuid.uuid4())
+    rid = _run_id(run_id)
     trace_json = str(trace)
-    digest = hashlib.sha256(trace_json.encode("utf-8")).hexdigest()
+    digest = _sha256_hex(trace_json)
     return EvalRecord(
         step_id="end_to_end",
         run_id=rid,
@@ -240,9 +268,5 @@ def build_end_to_end_record(
             "trace": trace,
             "trace_sha256": digest,
         },
-        metadata={
-            "sdk": "braintrust",
-            "emitter": "auto_prompt.evaluation",
-            **(metadata or {}),
-        },
+        metadata=_merge_emitter_metadata(metadata),
     )

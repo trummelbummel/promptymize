@@ -50,6 +50,56 @@ class SummarizePromptMethods(dspy.Signature):
     )
 
 
+class MergeSimilarPromptMethods(dspy.Signature):
+    """
+    #### CONTEXT
+
+    You receive Markdown where each ``##`` section describes one prompt-engineering
+    method or rule set. Some sections may overlap in meaning even if the titles differ.
+
+    #### OBJECTIVE
+
+    Merge **semantically similar** sections into a single section per distinct method.
+    Preserve unique rules; drop redundant bullets; unify naming so one ``##`` header
+    captures the combined idea.
+
+    #### STYLE
+
+    - Output **only** Markdown.
+    - Use ``##`` for each consolidated method (no top-level ``#`` title).
+    - Bullets: ``- `` lines; imperative, actionable phrasing.
+
+    #### AUDIENCE
+
+    Downstream agents use this as a compact rulebook—avoid duplication across sections.
+    """
+
+    combined_sections: str = dspy.InputField(
+        desc=(
+            "Markdown sections (possibly separated by ---) that may describe overlapping "
+            "prompt engineering methods."
+        ),
+    )
+    merged_markdown: str = dspy.OutputField(
+        desc=(
+            "Consolidated Markdown: one ## section per distinct method, bullets merged "
+            "without redundancy."
+        ),
+    )
+
+
+class SemanticMethodMerger(dspy.Module):
+    """LM pass that merges overlapping prompt-method sections into fewer sections."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.merge = dspy.ChainOfThought(MergeSimilarPromptMethods)
+
+    def forward(self, text: str) -> dspy.Prediction:
+        prediction = self.merge(combined_sections=text)
+        return dspy.Prediction(merged_markdown=str(prediction.merged_markdown).strip())
+
+
 class PromptMethodSummarizer(dspy.Module):
     """DSPy module that summarizes free-form text into structured Markdown."""
 

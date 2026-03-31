@@ -50,7 +50,7 @@ def test_build_context_writes_merge_latest_and_aggregates(tmp_path: Path) -> Non
     mock_summarizer.return_value = dspy.Prediction(summary="## One\n- rule")
 
     pipeline = PromptMethodsContext(summarizer=mock_summarizer, data_root=data_root)
-    out = pipeline.build_context()
+    out = pipeline.build_context(semantic_merge=False)
 
     assert out.name == "prompt_methods_context.csv"
     assert out.parent == data_root / "context"
@@ -75,7 +75,7 @@ def test_build_context_skips_processed_and_context_dirs(tmp_path: Path) -> None:
     mock_summarizer.return_value = dspy.Prediction(summary="S")
 
     pipeline = PromptMethodsContext(summarizer=mock_summarizer, data_root=data_root)
-    pipeline.build_context()
+    pipeline.build_context(semantic_merge=False)
 
     assert mock_summarizer.call_count == 1
     mock_summarizer.assert_called_once_with(text="yes")
@@ -92,7 +92,7 @@ def test_build_context_exact_dedupe_collapses_duplicate_sections(tmp_path: Path)
     mock_summarizer.return_value = dspy.Prediction(summary="## Same\n- one\n")
 
     pipeline = PromptMethodsContext(summarizer=mock_summarizer, data_root=data_root)
-    out = pipeline.build_context()
+    out = pipeline.build_context(semantic_merge=False)
 
     rows = _read_context_rows(out)
     assert len(rows) == 1
@@ -117,7 +117,7 @@ def test_build_context_merges_into_existing_latest(tmp_path: Path) -> None:
     mock_summarizer.return_value = dspy.Prediction(summary="## New\n- add\n")
 
     pipeline = PromptMethodsContext(summarizer=mock_summarizer, data_root=data_root)
-    out = pipeline.build_context()
+    out = pipeline.build_context(semantic_merge=False)
 
     assert out.name == "prompt_methods_context.csv"
     rows = _read_context_rows(out)
@@ -142,7 +142,11 @@ def test_build_context_chunks_long_inputs(tmp_path: Path) -> None:
     ]
 
     pipeline = PromptMethodsContext(summarizer=mock_summarizer, data_root=data_root)
-    out = pipeline.build_context(max_chunk_chars=10, chunk_long_sources=True)
+    out = pipeline.build_context(
+        max_chunk_chars=10,
+        chunk_long_sources=True,
+        semantic_merge=False,
+    )
 
     assert out.exists()
     rows = _read_context_rows(out)
@@ -179,7 +183,7 @@ def test_build_context_lock_timeout_raises(tmp_path: Path) -> None:
     assert ready.wait(timeout=10.0)
     try:
         with pytest.raises(ConcurrencyError):
-            pipeline.build_context(lock_timeout_seconds=0.0)
+            pipeline.build_context(lock_timeout_seconds=0.0, semantic_merge=False)
     finally:
         release.set()
         proc.join(timeout=10.0)
@@ -205,7 +209,7 @@ def test_build_context_removes_stale_lock_file(tmp_path: Path) -> None:
     lock_path = pipeline.context_root / CONTEXT_LOCK_FILENAME
     lock_path.write_text("999999999", encoding="utf-8")
 
-    out = pipeline.build_context()
+    out = pipeline.build_context(semantic_merge=False)
     assert out.name == "prompt_methods_context.csv"
     assert not lock_path.exists()
 
@@ -220,7 +224,9 @@ def test_build_context_explodes_rows_for_multiple_model_labels(tmp_path: Path) -
         summary="## Structured prompting\n- Works well for GPT and Claude families.\n",
     )
 
-    out = PromptMethodsContext(summarizer=mock_summarizer, data_root=data_root).build_context()
+    out = PromptMethodsContext(summarizer=mock_summarizer, data_root=data_root).build_context(
+        semantic_merge=False,
+    )
     rows = _read_context_rows(out)
     model_types = sorted(r["model_type"] for r in rows)
     assert model_types == ["claude", "gpt"]
@@ -236,7 +242,9 @@ def test_build_context_falls_back_to_processed_when_no_fresh_sources(tmp_path: P
     mock_summarizer = MagicMock()
     mock_summarizer.return_value = dspy.Prediction(summary="## Fallback\n- from processed")
 
-    out = PromptMethodsContext(summarizer=mock_summarizer, data_root=data_root).build_context()
+    out = PromptMethodsContext(summarizer=mock_summarizer, data_root=data_root).build_context(
+        semantic_merge=False,
+    )
     rows = _read_context_rows(out)
     assert rows
     assert rows[0]["method_name"] == "Fallback"

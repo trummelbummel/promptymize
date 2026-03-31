@@ -22,7 +22,8 @@ from auto_prompt.errors import ConcurrencyError
 from auto_prompt.preprocessing.preprocessing import HtmlPreprocessor
 from auto_prompt.preprocessing.dedupe_markdown import exact_dedupe_prompt_method_markdown
 from auto_prompt.promptymization.dspy_lm import configure_dspy_lm_from_env
-from auto_prompt.promptymization.dspy_modules import PromptMethodSummarizer
+from auto_prompt.promptymization.dspy_modules import PromptMethodSummarizer, SemanticMethodMerger
+from auto_prompt.promptymization.semantic_method_merge import run_semantic_merge_pass
 
 CONTEXT_FILENAME = "prompt_methods_context.csv"
 CONTEXT_LOCK_FILENAME = f".{CONTEXT_FILENAME.removesuffix('.csv')}.lock"
@@ -63,6 +64,7 @@ class PromptMethodsContext:
         summarizer: dspy.Module | None = None,
         data_root: Path | None = None,
         incremental_deduplicator: dspy.Module | None = None,
+        semantic_merger: dspy.Module | None = None,
     ) -> None:
         project_root = Path(__file__).resolve().parents[3]
         self.data_root = data_root if data_root is not None else project_root / "sources" / "data"
@@ -72,6 +74,7 @@ class PromptMethodsContext:
         self._needs_dspy_lm_config = summarizer is None or incremental_deduplicator is not None
         self.summarizer: dspy.Module = summarizer or PromptMethodSummarizer()
         self.incremental_deduplicator: dspy.Module | None = incremental_deduplicator
+        self._semantic_merger = semantic_merger
 
     def build_context(
         self,
@@ -81,6 +84,9 @@ class PromptMethodsContext:
         lock_timeout_seconds: float = 30.0,
         chunk_long_sources: bool = True,
         max_chunk_chars: int = 12000,
+        semantic_merge: bool = True,
+        semantic_similarity_threshold: float = 0.28,
+        semantic_merge_max_chunk_chars: int = 100_000,
     ) -> Path:
         """
         Run summarization over Markdown files, move processed folders, write context CSV.
@@ -90,9 +96,15 @@ class PromptMethodsContext:
         containing folder into ``processed`` once per folder, and **merges** this run's
         aggregate into the existing canonical context rows.
 
+        After exact Markdown dedupe, optionally runs a **semantic merge** pass: clusters
+        similar ``##`` sections (token overlap) and consolidates each cluster with an LM.
+
         :param emit_context_engineering_eval: If ``True``, log a ``context_engineering`` row
             to Braintrust after the merge (requires ``BRAINTRUST_API_KEY`` and related env).
         :param eval_run_id: Optional correlation id for the eval record.
+        :param semantic_merge: If ``True``, run LM merge for semantically overlapping methods.
+        :param semantic_similarity_threshold: Jaccard threshold on section tokens for clustering.
+        :param semantic_merge_max_chunk_chars: Max characters per LM merge call (split larger clusters).
         :return: Path to ``prompt_methods_context.csv``.
         """
 
@@ -130,6 +142,15 @@ class PromptMethodsContext:
                 aggregated=aggregated,
                 running_reference=running_reference,
             )
+            if semantic_merge and merged_markdown.strip():
+                merger = self._semantic_merger or SemanticMethodMerger()
+                configure_dspy_lm_from_env()
+                merged_markdown = self._semantic_merge_merged_markdown(
+                    merged_markdown,
+                    merger,
+                    similarity_threshold=semantic_similarity_threshold,
+                    max_chunk_chars=semantic_merge_max_chunk_chars,
+                )
             csv_text = self._render_context_csv(merged_markdown)
             self._atomic_write_text(latest_path=latest_path, text=csv_text)
         finally:
@@ -507,6 +528,33 @@ class PromptMethodsContext:
         if not existing.strip():
             return chunk
         return exact_dedupe_prompt_method_markdown(f"{existing.rstrip()}\n\n{chunk.rstrip()}")
+
+    def _semantic_merge_merged_markdown(
+        self,
+        merged_markdown: str,
+        merger: dspy.Module,
+        *,
+        similarity_threshold: float,
+        max_chunk_chars: int,
+    ) -> str:
+        """Cluster similar ``##`` sections and consolidate each cluster via ``merger``."""
+
+        def merger_fn(text: str) -> str:
+            pred = merger.forward(text=text)
+            return str(pred.merged_markdown).strip()
+
+        out = run_semantic_merge_pass(
+            merged_markdown,
+            merger_fn,
+            similarity_threshold=similarity_threshold,
+            max_chunk_chars=max_chunk_chars,
+        )
+        logger.info(
+            "Semantic merge pass: input %d chars, output %d chars.",
+            len(merged_markdown.strip()),
+            len(out),
+        )
+        return out
 
     def _iter_markdown_files(self) -> Iterator[Path]:
         """

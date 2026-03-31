@@ -66,7 +66,7 @@ def test_context_engineering_integration_uses_real_llm(tmp_path: Path) -> None:
     (data_root / "batch1" / "source.md").write_text(excerpt, encoding="utf-8")
 
     pipeline = PromptMethodsContext(data_root=data_root)
-    out_path = pipeline.build_context()
+    out_path = pipeline.build_context(semantic_merge=False)
     with out_path.open("r", encoding="utf-8", newline="") as f:
         rows = list(csv.DictReader(f))
 

@@ -34,6 +34,11 @@ def main() -> None:
         default=None,
         help="Optional correlation id for the Braintrust row.",
     )
+    parser.add_argument(
+        "--no-semantic-merge",
+        action="store_true",
+        help="Skip the LM pass that merges semantically similar prompt-method sections.",
+    )
     args = parser.parse_args()
 
     emit_eval = args.eval or os.environ.get("AUTO_PROMPT_CONTEXT_EVAL", "").strip().lower() in (
@@ -44,5 +49,6 @@ def main() -> None:
     path = PromptMethodsContext(data_root=args.data_root).build_context(
         emit_context_engineering_eval=emit_eval,
         eval_run_id=args.eval_run_id,
+        semantic_merge=not args.no_semantic_merge,
     )
     print(path)
