@@ -1,16 +1,39 @@
 from __future__ import annotations
 
 import csv
+import multiprocessing
+import os
 from pathlib import Path
 from unittest.mock import MagicMock
 
 import dspy
+import pytest
+
+try:
+    import fcntl
+except ImportError:
+    fcntl = None
 
 from auto_prompt.errors import ConcurrencyError
 from auto_prompt.preprocessing.context_engineering import (
     CONTEXT_LOCK_FILENAME,
     PromptMethodsContext,
 )
+
+
+def _hold_context_merge_lock(lock_path_str: str, ready: multiprocessing.Event, release: multiprocessing.Event) -> None:
+    """Child process: hold an exclusive flock until ``release`` is set."""
+
+    import fcntl as _fcntl
+
+    fd = os.open(lock_path_str, os.O_CREAT | os.O_WRONLY, 0o644)
+    _fcntl.flock(fd, _fcntl.LOCK_EX)
+    ready.set()
+    release.wait(timeout=120)
+    try:
+        os.close(fd)
+    except OSError:
+        pass
 
 
 def _read_context_rows(path: Path) -> list[dict[str, str]]:
@@ -134,6 +157,9 @@ def test_build_context_chunks_long_inputs(tmp_path: Path) -> None:
 
 
 def test_build_context_lock_timeout_raises(tmp_path: Path) -> None:
+    if fcntl is None:
+        pytest.skip("fcntl not available; O_EXCL fallback uses different contention semantics")
+
     data_root = tmp_path / "sources" / "data"
     (data_root / "context").mkdir(parents=True)
     (data_root / "batch1").mkdir(parents=True)
@@ -143,17 +169,45 @@ def test_build_context_lock_timeout_raises(tmp_path: Path) -> None:
     pipeline = PromptMethodsContext(summarizer=mock_summarizer, data_root=data_root)
 
     lock_path = pipeline.context_root / CONTEXT_LOCK_FILENAME
-    lock_path.write_text("held", encoding="utf-8")
+    ready = multiprocessing.Event()
+    release = multiprocessing.Event()
+    proc = multiprocessing.Process(
+        target=_hold_context_merge_lock,
+        args=(str(lock_path), ready, release),
+    )
+    proc.start()
+    assert ready.wait(timeout=10.0)
     try:
-        raised = False
-        try:
+        with pytest.raises(ConcurrencyError):
             pipeline.build_context(lock_timeout_seconds=0.0)
-        except ConcurrencyError:
-            raised = True
-        assert raised
     finally:
+        release.set()
+        proc.join(timeout=10.0)
+        if proc.is_alive():
+            proc.terminate()
+            proc.join(timeout=5.0)
         if lock_path.exists():
             lock_path.unlink()
+
+
+def test_build_context_removes_stale_lock_file(tmp_path: Path) -> None:
+    """Crashed runs leave a lock file; a non-running PID should be replaced by a new lock."""
+
+    data_root = tmp_path / "sources" / "data"
+    (data_root / "context").mkdir(parents=True)
+    (data_root / "batch1").mkdir(parents=True)
+    (data_root / "batch1" / "a.md").write_text("# Src\nbody", encoding="utf-8")
+
+    mock_summarizer = MagicMock()
+    mock_summarizer.return_value = dspy.Prediction(summary="## Summary\nok\n")
+    pipeline = PromptMethodsContext(summarizer=mock_summarizer, data_root=data_root)
+
+    lock_path = pipeline.context_root / CONTEXT_LOCK_FILENAME
+    lock_path.write_text("999999999", encoding="utf-8")
+
+    out = pipeline.build_context()
+    assert out.name == "prompt_methods_context.csv"
+    assert not lock_path.exists()
 
 
 def test_build_context_explodes_rows_for_multiple_model_labels(tmp_path: Path) -> None:

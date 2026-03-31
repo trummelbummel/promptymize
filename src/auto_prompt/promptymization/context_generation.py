@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import errno
 import logging
 import os
 import re
@@ -11,6 +12,11 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import dspy
+
+try:
+    import fcntl
+except ImportError:
+    fcntl = None  # type: ignore[assignment, misc]
 
 from auto_prompt.errors import ConcurrencyError
 from auto_prompt.preprocessing.preprocessing import HtmlPreprocessor
@@ -146,24 +152,110 @@ class PromptMethodsContext:
 
         return latest_path
 
-    def _acquire_merge_lock(self, *, lock_path: Path, timeout_seconds: float) -> int:
+    def _lock_file_holder_alive(self, lock_path: Path) -> bool | None:
         """
-        Acquire an exclusive lock for writing ``prompt_methods_context.csv``.
+        Return whether the PID stored in ``lock_path`` appears to be running.
 
-        Uses best-effort file creation with ``O_EXCL``.
+        ``False`` means the lock is stale (safe to remove). ``None`` means we could
+        not tell (treat as *held* by another live process).
+
+        Used only for the non-``fcntl`` fallback (platforms without advisory locking).
         """
+
+        try:
+            raw = lock_path.read_text(encoding="utf-8").strip()
+        except OSError:
+            return None
+        if not raw:
+            return False
+        try:
+            pid = int(raw.split()[0])
+        except ValueError:
+            return False
+        if pid == os.getpid():
+            return True
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        except PermissionError:
+            # Another user's process may hold the lock; do not steal it.
+            return True
+        except OSError as exc:
+            if exc.errno == errno.ESRCH:
+                return False
+            return None
+        return True
+
+    def _acquire_merge_lock_flock(self, *, lock_path: Path, timeout_seconds: float) -> int:
+        """
+        POSIX advisory lock: released automatically when the holding process exits,
+        so crashed builds do not leave an indefinite ``O_EXCL`` stale lock.
+        """
+
+        assert fcntl is not None
+        lock_fd = os.open(lock_path, os.O_CREAT | os.O_WRONLY, 0o644)
+        start = time.monotonic()
+        while True:
+            try:
+                fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if time.monotonic() - start >= timeout_seconds:
+                    try:
+                        os.close(lock_fd)
+                    except OSError:
+                        pass
+                    raise ConcurrencyError("Context merge lock not acquired within timeout.")
+                time.sleep(0.1)
+        try:
+            os.ftruncate(lock_fd, 0)
+            os.write(lock_fd, str(os.getpid()).encode("utf-8"))
+            os.fsync(lock_fd)
+        except Exception:
+            try:
+                fcntl.flock(lock_fd, fcntl.LOCK_UN)
+            except OSError:
+                pass
+            try:
+                os.close(lock_fd)
+            except OSError:
+                pass
+            raise
+        return lock_fd
+
+    def _acquire_merge_lock_oexcl(self, *, lock_path: Path, timeout_seconds: float) -> int:
+        """Fallback when ``fcntl`` is unavailable (e.g. Windows): ``O_EXCL`` + stale PID cleanup."""
 
         start = time.monotonic()
-        # Poll until timeout.
         while True:
             try:
                 lock_fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
                 os.write(lock_fd, str(os.getpid()).encode("utf-8"))
                 return lock_fd
             except FileExistsError:
+                alive = self._lock_file_holder_alive(lock_path)
+                if alive is False:
+                    try:
+                        lock_path.unlink(missing_ok=True)
+                    except OSError:
+                        pass
+                    continue
                 if time.monotonic() - start >= timeout_seconds:
                     raise ConcurrencyError("Context merge lock not acquired within timeout.")
                 time.sleep(0.1)
+
+    def _acquire_merge_lock(self, *, lock_path: Path, timeout_seconds: float) -> int:
+        """
+        Acquire an exclusive lock for writing ``prompt_methods_context.csv``.
+
+        On POSIX, uses ``fcntl.flock`` so locks are released when the holder process
+        terminates. Else falls back to ``O_EXCL`` plus best-effort stale PID removal.
+        """
+
+        if fcntl is not None:
+            return self._acquire_merge_lock_flock(lock_path=lock_path, timeout_seconds=timeout_seconds)
+        return self._acquire_merge_lock_oexcl(lock_path=lock_path, timeout_seconds=timeout_seconds)
 
     def _release_merge_lock(self, *, lock_path: Path, lock_fd: int) -> None:
         """Release a lock acquired via :meth:`_acquire_merge_lock`."""
