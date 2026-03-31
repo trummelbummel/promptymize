@@ -1,0 +1,51 @@
+---
+alwaysApply: true
+description: Python in src/ must follow the FactExtractor layout and conventions (fact_extractor.py)
+---
+
+# FactExtractor code format (canonical reference)
+
+All new or refactored Python under `src/` should follow the same **structure, patterns, and docstring style** as the `FactExtractor` class in:
+
+- **`src/auto_prompt/preprocessing/fact_extractor.py`** (canonical path in this repo)
+
+If that file is missing, use the same style as any checked-in `FactExtractor` / fact-extractor reference the project points to.
+
+## Class and OOP
+
+- Prefer **one cohesive class** per logical tool (e.g. `FactExtractor`).
+- **`__init__(self, ...)`** takes optional collaborators with `None` defaults; when an argument is `None`, construct the default implementation and assign to **`self.*`**.
+- Anything used in multiple methods must be an **instance attribute** (e.g. `self.extractor`, `self.chunking_strategy`, `self.logger`), not threaded as repeated loose parameters.
+
+## Constants
+
+- Define shared numeric/string defaults as **module-level constants** above the class (e.g. `DEFAULT_CHUNK_SIZE = 1000`).
+
+## DSPy
+
+- Use **`dspy.Predict`**, **`dspy.Module`**, or other DSPy primitives as appropriate; allow **injection** of a custom `dspy.Module` in `__init__` for tests.
+- Provide **`forward(self, ...)`** when the class wraps a predictor, delegating to `self.extractor(...)` (or equivalent).
+
+## Public methods
+
+- Use **clear verb phrases** (`extract_*`, `*_with_chunking`).
+- **Type hints** on parameters and return types in the signature.
+- **Sphinx docstrings** with **`:param`** and **`:return`** only (no type-in-docstring style per project rules).
+- When returning both a value and a status, use a **tuple** (e.g. `tuple[list[str], int]` for result + failure count).
+
+## Logging
+
+- Use **`logging.getLogger(__name__)`** or `logging.getLogger()` as in the reference; configure **level**, **handler**, and **formatter** in `__init__` when this class owns logging.
+- Log **INFO** on success and failure paths with enough context (e.g. chunk length, error summary).
+
+## Errors
+
+- Catch **expected** exceptions (e.g. **`ValidationError`** from structured outputs). On failure, return **safe defaults** (e.g. empty list) and propagate failure via a count or flag instead of crashing batch work unless requirements say otherwise.
+
+## Imports
+
+- Order: standard library, third party, local packages. Use **`from __future__ import annotations`** when using modern annotations.
+
+## Relation to other rules
+
+- This rule **concretizes** `00-project.mdc` (“follow the style of `fact_extractor.py`”). When they conflict, **match `fact_extractor.py`**.

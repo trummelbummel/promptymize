@@ -1,0 +1,16 @@
+---
+alwaysApply: true
+---
+
+src:
+- Should usually follow the style of the classes contained in the `fact_extractor.py` (see `fact-extractor-format.mdc` for the full checklist).
+- Contains core logic.
+- Always create object oriented code whenever possible. 
+- when variables are reused and passed repeatedly make them attributes of the classe
+- If the source folder is empty first ask me for an architecture that should be reflected in folders in src/ and tests/
+- create a sources/ and sources/conf folder if it is not there. 
+- Always use Python.
+- When you create code always create a class and appropriate abstraction and associated functions as well as static methods 
+- Always use sphinx no type format for docstrings. 
+- Always use the `dspy` library for any module that is LLM-related. Check carefully if there is a module in `dspy 3.0.3` that could help implement the requested functionality.
+- Always write tests for core fucntionality using the test.mdc rules
