@@ -1,0 +1,12 @@
+---
+alwaysApply: true
+---
+
+### /fix-test
+- Read test failure output carefully from the terminal.
+- Identify root cause.
+- Fix code before fixing tests if necessary.
+- Use the version of SDKs that is used in `pyproject.toml`.
+- If issues are encountered based on version mismatch then fix `pyproject.toml`.
+- Import missing libraries.
+- Check off items in the plan as we accomplish them as a todo list. If you have open questions that require my input, add those in the plan as well.

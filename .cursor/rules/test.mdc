@@ -1,0 +1,9 @@
+---
+alwaysApply: true
+---
+
+### /test
+- Capture current behavior.
+- Include edge cases.
+- Only test core logic.
+- Structure the folders and files in `tests` just like the folders and files in the `src` folder.

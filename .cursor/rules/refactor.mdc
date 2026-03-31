@@ -1,0 +1,22 @@
+---
+alwaysApply: true
+---
+
+### /refactor
+- MUST FOLLOW the style of the classes contained in the `fact_extractor.py` for all modules in src/.
+- You are working inside a production codebase. 
+
+#### IMPORTANT RULES FOR PRODUCTION CODE BASES 
+
+- Apply DRY (Don't repeat yourself) principles.
+- Apply software engineering best practices KISS (Keep it simple stupid).
+- Apply software engineering best practices SOLID (Single responsibility principle, Open Closed principle, Liskov substitution principle, Interface segregation principle and Dependency inversion principles).
+- Refactor every piece of code for clarity and maintainability.
+- Minimal diff.
+- No new abstractions.
+- No behavior change unless it is a bug, then fix it.
+- Create documentation for each function.
+- Prefer clarity.
+- Prefer early returns.
+- Ask before large refactors.
+- Ask clarifying questions if you are unsure.

@@ -1,0 +1,55 @@
+src:
+- Should usually follow the style of the classes contained in the fact_extractor.py  
+- Contains core logic. 
+- Always use python.
+- Always use the dspy library for any module that is llm related, hence check carefully 
+if there is a module in dspy 3.0.3 that could help implement the functionality I am asking for. 
+
+
+
+## Slash Commands
+
+
+### /fix-test
+- Read test failure output carefully from the terminal.
+- Identify root cause
+- Fix code before fixing tests if necessary.
+
+- Use the version of SDKs that is used in pyproject.toml
+- if issues are encountered based on version mismatch then fix pyproject.toml
+- import missing libraries 
+
+
+
+### /edge
+- list edge cases 
+
+
+### /explain
+- Summarize what the code does
+- List assumptions
+- Call out confusing logic
+
+### /refactor:
+Refactor every piece of code for clarity and maintainability.
+You are working inside a production codebase.
+- Minimal diff
+- No new abstractions
+- No behavior change
+- Create documentation for each function
+- Prefer clarity
+- Prefer early returns
+- Avoid clever abstractions
+- Follow existing patterns in the codebase
+- Ask before large refactors
+- Ask clarifying questions if you are unsure
+
+
+### /test:
+- Capture current behavior
+- Include edge cases
+- only test core logic 
+- structure the folders and files in tests just like the folders and files in the src folder.
+
+
+Check off items in the plan as we accomplish them as a todo list. If you have open questions that require my input, add those in the plan as well. 

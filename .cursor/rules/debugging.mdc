@@ -1,0 +1,15 @@
+---
+description: Advanced debugging workflow
+rule_type: manual
+---
+
+# Debugging Workflow
+
+When debugging an issue:
+
+1. Search the repo for related code first.
+2. Identify the root cause before writing fixes.
+3. Prefer minimal fixes instead of rewriting logic.
+4. Add logging if the issue cannot be reproduced.
+
+Always explain the root cause before proposing a fix.
