@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from auto_prompt.errors import ConfigurationError, DependencyUnavailableError, ResourceNotFoundError, ValidationError
-from auto_prompt.prompt_optimizer.agent import PromptOptimizerAgent
+from auto_prompt.prompt_optimizer.agent import COSTAR_FIELDS, PromptOptimizerAgent
 from auto_prompt.prompt_scorer import ComparisonResult, PromptScorer, ScoreResult
 
 
@@ -112,10 +112,15 @@ class RestApiService:
         if step_id == "costar_extend":
             objectives = str(payload.get("objectives", "")).strip()
             current_answers = dict(payload.get("current_answers", {}) or {})
+            if not objectives:
+                raise ValidationError("objectives is required")
+            for key in COSTAR_FIELDS:
+                if not str(current_answers.get(key, "")).strip():
+                    raise ValidationError(f"CO-STAR field {key!r} is required")
             draft = session.agent.generate_costar_extension(
                 objectives=objectives,
                 current_answers=current_answers,
-                extension_generator=self._default_extension_generator,
+                extension_generator=lambda p: self._rules_based_costar_extension(session.agent, p),
             )
             result = {"draft": draft.fields, "objectives": draft.objectives}
         elif step_id == "apply_extension":
@@ -213,12 +218,33 @@ class RestApiService:
             raise ResourceNotFoundError("session not found")
         return session
 
-    def _default_extension_generator(self, payload: dict[str, str]) -> dict[str, str]:
+    def _rules_based_costar_extension(self, agent: PromptOptimizerAgent, payload: dict[str, str]) -> dict[str, str]:
+        """
+        Expand each CO-STAR answer into a more verbose form using task objectives and
+        prompt-method context from ``prompt_methods_context.csv`` (when available).
+        """
+
+        ctx = ""
+        try:
+            ctx = agent.load_context_markdown()
+        except Exception:
+            pass
+        max_excerpt = 1800
+        excerpt = (ctx[:max_excerpt] + "…") if len(ctx) > max_excerpt else ctx
         objectives = payload.get("objectives", "").strip()
-        out = dict(payload)
-        for key in ("context", "objective", "style", "tone", "audience", "response"):
-            if not out.get(key, "").strip():
-                out[key] = f"{key} guidance aligned with: {objectives}" if objectives else f"{key} guidance"
+        out: dict[str, str] = {}
+        for key in COSTAR_FIELDS:
+            base = str(payload.get(key, "")).strip()
+            lines = [
+                base,
+                "",
+                f"**Elaboration:** Operationalize the **{key}** dimension for: {objectives}",
+            ]
+            if excerpt.strip():
+                lines.extend(["", "**Grounding (prompt-method rules excerpt):**", excerpt])
+            else:
+                lines.append("**Grounding:** No prompt-method context loaded (missing or empty CSV).")
+            out[key] = "\n".join(lines).strip()
         return out
 
     def _score_result_to_json(self, result: ScoreResult) -> dict[str, Any]:

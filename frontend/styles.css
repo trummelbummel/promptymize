@@ -52,3 +52,20 @@ button {
   min-height: 60px;
   white-space: pre-wrap;
 }
+
+.hint {
+  font-size: 13px;
+  color: #444;
+  margin: 0 0 10px;
+  line-height: 1.4;
+}
+
+.error {
+  color: #a40000;
+  font-size: 13px;
+  min-height: 1.2em;
+}
+
+.hidden {
+  display: none;
+}

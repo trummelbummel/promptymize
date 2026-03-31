@@ -40,12 +40,20 @@ def test_rest_api_step_execute_and_rerun(tmp_path: Path) -> None:
     _, session = api.handle(method="POST", path="/v1/sessions", body={"model_type": "gpt"})
     sid = session["session_id"]
 
+    full_costar = {
+        "context": "Product docs",
+        "objective": "Summarize",
+        "style": "Bullets",
+        "tone": "Neutral",
+        "audience": "Engineers",
+        "response": "Markdown",
+    }
     code, resp = api.handle(
         method="POST",
         path="/v1/steps/costar_extend/execute",
         body={
             "session_id": sid,
-            "payload": {"objectives": "improve output quality", "current_answers": {"objective": "summarize"}},
+            "payload": {"objectives": "improve output quality", "current_answers": full_costar},
         },
     )
     assert code == 200

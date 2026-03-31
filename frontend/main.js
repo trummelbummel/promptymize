@@ -1,5 +1,25 @@
 const API_BASE_URL = window.API_BASE_URL || "http://localhost:8000";
 
+const COSTAR_KEYS = ["context", "objective", "style", "tone", "audience", "response"];
+
+const COSTAR_INPUT_IDS = {
+  context: "costarContext",
+  objective: "costarObjective",
+  style: "costarStyle",
+  tone: "costarTone",
+  audience: "costarAudience",
+  response: "costarResponse",
+};
+
+const DRAFT_IDS = {
+  context: "draftContext",
+  objective: "draftObjective",
+  style: "draftStyle",
+  tone: "draftTone",
+  audience: "draftAudience",
+  response: "draftResponse",
+};
+
 const state = {
   sessionId: null,
 };
@@ -28,6 +48,45 @@ function setOutput(id, value) {
     typeof value === "string" ? value : JSON.stringify(value, null, 2);
 }
 
+function validateCostarForm() {
+  const objectives = document.getElementById("costarObjectives").value.trim();
+  if (!objectives) {
+    return "Task objectives are required.";
+  }
+  for (const key of COSTAR_KEYS) {
+    const el = document.getElementById(COSTAR_INPUT_IDS[key]);
+    if (!el || !el.value.trim()) {
+      return `CO-STAR field "${key}" is required.`;
+    }
+  }
+  return null;
+}
+
+function collectCostarAnswers() {
+  const current_answers = {};
+  for (const key of COSTAR_KEYS) {
+    current_answers[key] = document.getElementById(COSTAR_INPUT_IDS[key]).value.trim();
+  }
+  return current_answers;
+}
+
+function fillDraftFields(fields) {
+  for (const key of COSTAR_KEYS) {
+    const el = document.getElementById(DRAFT_IDS[key]);
+    if (el) {
+      el.value = fields[key] != null ? String(fields[key]) : "";
+    }
+  }
+}
+
+function readDraftFields() {
+  const edited_fields = {};
+  for (const key of COSTAR_KEYS) {
+    edited_fields[key] = document.getElementById(DRAFT_IDS[key]).value.trim();
+  }
+  return edited_fields;
+}
+
 document.getElementById("createSessionBtn").addEventListener("click", async () => {
   try {
     const modelType = document.getElementById("modelType").value.trim() || "all";
@@ -39,14 +98,48 @@ document.getElementById("createSessionBtn").addEventListener("click", async () =
   }
 });
 
-document.getElementById("sendMessageBtn").addEventListener("click", async () => {
+document.getElementById("costarExtendBtn").addEventListener("click", async () => {
+  const validation = document.getElementById("costarValidation");
+  validation.textContent = "";
   try {
     requireSession();
-    const message = document.getElementById("messageInput").value;
-    const data = await apiCall("POST", `/v1/sessions/${state.sessionId}/messages`, { message });
-    setOutput("messageOutput", data);
+    const err = validateCostarForm();
+    if (err) {
+      validation.textContent = err;
+      return;
+    }
+    const objectives = document.getElementById("costarObjectives").value.trim();
+    const data = await apiCall("POST", "/v1/steps/costar_extend/execute", {
+      session_id: state.sessionId,
+      payload: {
+        objectives,
+        current_answers: collectCostarAnswers(),
+      },
+    });
+    const draft = data.result && data.result.draft;
+    if (draft) {
+      fillDraftFields(draft);
+      document.getElementById("costarDraftSection").classList.remove("hidden");
+    }
+    setOutput("costarOutput", data);
   } catch (err) {
-    setOutput("messageOutput", String(err.message || err));
+    setOutput("costarOutput", String(err.message || err));
+  }
+});
+
+document.getElementById("applyCostarBtn").addEventListener("click", async () => {
+  try {
+    requireSession();
+    const data = await apiCall("POST", "/v1/steps/apply_extension/execute", {
+      session_id: state.sessionId,
+      payload: {
+        user_prompt: document.getElementById("basePromptInput").value,
+        edited_fields: readDraftFields(),
+      },
+    });
+    setOutput("costarOutput", data);
+  } catch (err) {
+    setOutput("costarOutput", String(err.message || err));
   }
 });
 
@@ -72,7 +165,7 @@ document.getElementById("applyMethodBtn").addEventListener("click", async () => 
   try {
     requireSession();
     const methodId = document.getElementById("methodSelect").value;
-    const userPrompt = document.getElementById("basePromptInput").value;
+    const userPrompt = document.getElementById("methodBasePromptInput").value;
     const data = await apiCall("POST", `/v1/methods/${encodeURIComponent(methodId)}/apply`, {
       session_id: state.sessionId,
       payload: { user_prompt: userPrompt },
