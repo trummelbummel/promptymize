@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
-from auto_prompt.promptymization.context_csv import ContextMethodRow, load_context_rows, rows_to_markdown
+from auto_prompt.preprocessing.context_csv import ContextMethodRow, load_context_rows, rows_to_markdown
 
 COSTAR_FIELDS: tuple[str, ...] = (
     "context",

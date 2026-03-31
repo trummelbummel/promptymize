@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import logging
 import os
 import re
 import shutil
@@ -13,7 +14,7 @@ import dspy
 
 from auto_prompt.errors import ConcurrencyError
 from auto_prompt.preprocessing.preprocessing import HtmlPreprocessor
-from auto_prompt.promptymization.dedupe_markdown import exact_dedupe_prompt_method_markdown
+from auto_prompt.preprocessing.dedupe_markdown import exact_dedupe_prompt_method_markdown
 from auto_prompt.promptymization.dspy_lm import configure_dspy_lm_from_env
 from auto_prompt.promptymization.dspy_modules import PromptMethodSummarizer
 
@@ -31,6 +32,8 @@ _MODEL_TYPE_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("qwen", re.compile(r"\bqwen\b", re.I)),
     ("deepseek", re.compile(r"\bdeepseek\b", re.I)),
 )
+
+logger = logging.getLogger(__name__)
 
 
 class PromptMethodsContext:
@@ -100,6 +103,14 @@ class PromptMethodsContext:
             existing_markdown = self._markdown_from_existing_csv(latest_path)
 
             markdown_files = list(self._iter_markdown_files())
+            if not markdown_files:
+                markdown_files = list(self._iter_processed_markdown_files())
+                if markdown_files:
+                    logger.info(
+                        "No unprocessed markdown found under %s; using processed sources fallback (%d files).",
+                        self.data_root,
+                        len(markdown_files),
+                    )
             if self._needs_dspy_lm_config and markdown_files:
                 configure_dspy_lm_from_env()
 
@@ -221,6 +232,10 @@ class PromptMethodsContext:
 
             folder = md_path.parent
             if folder in moved:
+                continue
+
+            if "processed" in md_path.relative_to(self.data_root).parts:
+                # Already in processed tree (e.g., dev fixture fallback), do not re-stage.
                 continue
 
             relative = folder.relative_to(self.data_root)
@@ -413,6 +428,13 @@ class PromptMethodsContext:
         for md_path in sorted(self.data_root.rglob("*.md")):
             if self._is_excluded(md_path):
                 continue
+            yield md_path
+
+    def _iter_processed_markdown_files(self) -> Iterator[Path]:
+        """Yield markdown files already under ``processed`` as a fallback source set."""
+        if not self.processed_root.exists():
+            return
+        for md_path in sorted(self.processed_root.rglob("*.md")):
             yield md_path
 
     def _is_excluded(self, path: Path) -> bool:

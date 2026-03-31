@@ -8,7 +8,7 @@ from typing import Any, Literal, Protocol
 from auto_prompt.errors import DependencyUnavailableError, ResourceNotFoundError, ValidationError
 from auto_prompt.evaluation import run_step_eval
 from auto_prompt.evaluation.contradiction_scoring import score_instruction_contradictions
-from auto_prompt.promptymization.context_csv import ContextMethodRow, load_context_rows, rows_to_markdown
+from auto_prompt.preprocessing.context_csv import ContextMethodRow, load_context_rows, rows_to_markdown
 
 ScoringPhase = Literal["before", "after"]
 

@@ -172,3 +172,18 @@ def test_build_context_explodes_rows_for_multiple_model_labels(tmp_path: Path) -
     assert model_types == ["claude", "gpt"]
     assert len({r["section_markdown"] for r in rows}) == 1
 
+
+def test_build_context_falls_back_to_processed_when_no_fresh_sources(tmp_path: Path) -> None:
+    data_root = tmp_path / "sources" / "data"
+    processed_batch = data_root / "processed" / "batch1"
+    processed_batch.mkdir(parents=True)
+    (processed_batch / "a.md").write_text("source text", encoding="utf-8")
+
+    mock_summarizer = MagicMock()
+    mock_summarizer.return_value = dspy.Prediction(summary="## Fallback\n- from processed")
+
+    out = PromptMethodsContext(summarizer=mock_summarizer, data_root=data_root).build_context()
+    rows = _read_context_rows(out)
+    assert rows
+    assert rows[0]["method_name"] == "Fallback"
+
