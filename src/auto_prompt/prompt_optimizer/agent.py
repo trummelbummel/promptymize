@@ -16,6 +16,16 @@ COSTAR_FIELDS: tuple[str, ...] = (
     "response",
 )
 
+# Markdown ## titles for each CO-STAR dimension (and task objectives).
+COSTAR_SECTION_TITLES: dict[str, str] = {
+    "context": "Context",
+    "objective": "Objective",
+    "style": "Style",
+    "tone": "Tone",
+    "audience": "Audience",
+    "response": "Response",
+}
+
 
 class PromptScorerAdapter(Protocol):
     """Minimal scorer boundary for the optimizer agent."""
@@ -131,21 +141,28 @@ class PromptOptimizerAgent:
         """
         Apply the approved CO-STAR extension to the working prompt.
 
+        Emits markdown with ``## Task objectives`` and one ``##`` section per CO-STAR
+        dimension (``Context``, ``Objective``, …) so the expanded prompt matches the
+        base structure used for comparison.
+
         :raises ValueError: If no extension has been approved by the user.
         """
 
         if self._approved_extension is None:
             raise ValueError("Cannot apply extension before user approval.")
 
+        block = format_costar_markdown(
+            objectives=self._approved_extension.objectives,
+            fields=self._approved_extension.fields,
+        )
         base = user_prompt.strip()
-        lines: list[str] = [base] if base else []
-        lines.append("")
-        lines.append("## CO-STAR guidance")
-        for key in COSTAR_FIELDS:
-            value = self._approved_extension.fields.get(key, "").strip()
-            if value:
-                lines.append(f"- {key}: {value}")
-        return "\n".join(lines).strip() + "\n"
+        if base and block:
+            return f"{base}\n\n{block}\n"
+        if base:
+            return base + "\n"
+        if block:
+            return block + "\n"
+        return "\n"
 
     def score_prompt(self, *, prompt: str, scoring_phase: str, session_id: str | None = None) -> object:
         """Delegate scoring to the configured scorer boundary."""
@@ -170,4 +187,29 @@ class PromptOptimizerAgent:
         for key in COSTAR_FIELDS:
             out[key] = str(values.get(key, "")).strip()
         return out
+
+
+def format_costar_markdown(*, objectives: str, fields: dict[str, str]) -> str:
+    """
+    Render task objectives and CO-STAR fields as markdown with ``##`` headers.
+
+    Section titles use :data:`COSTAR_SECTION_TITLES` plus ``## Task objectives``.
+    Empty sections are omitted.
+    """
+
+    lines: list[str] = []
+    obj = objectives.strip()
+    if obj:
+        lines.append("## Task objectives")
+        lines.append(obj)
+        lines.append("")
+    for key in COSTAR_FIELDS:
+        value = str(fields.get(key, "")).strip()
+        if not value:
+            continue
+        title = COSTAR_SECTION_TITLES.get(key, key.title())
+        lines.append(f"## {title}")
+        lines.append(value)
+        lines.append("")
+    return "\n".join(lines).strip()
 

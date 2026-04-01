@@ -20,6 +20,15 @@ const DRAFT_IDS = {
   response: "draftResponse",
 };
 
+const COSTAR_HEADINGS = {
+  context: "Context",
+  objective: "Objective",
+  style: "Style",
+  tone: "Tone",
+  audience: "Audience",
+  response: "Response",
+};
+
 const state = {
   sessionId: null,
 };
@@ -88,7 +97,39 @@ function readDraftFields() {
 }
 
 /**
- * Push the canonical working prompt into downstream steps (method apply, scoring, compare).
+ * Build the **base** prompt: optional freeform prefix, then ``## Task objectives`` and
+ * one ``##`` section per CO-STAR dimension with the user’s raw field text (matches server
+ * :func:`format_costar_markdown` shape without expansion).
+ */
+function buildBaseCostarMarkdown(includeBasePrompt) {
+  const base =
+    includeBasePrompt && document.getElementById("basePromptInput")
+      ? document.getElementById("basePromptInput").value.trim()
+      : "";
+  const objectives = document.getElementById("costarObjectives").value.trim();
+  const parts = [];
+  if (base) {
+    parts.push(base);
+  }
+  if (objectives) {
+    parts.push(`## Task objectives\n${objectives}`);
+  }
+  for (const key of COSTAR_KEYS) {
+    const v = document.getElementById(COSTAR_INPUT_IDS[key]).value.trim();
+    if (v) {
+      parts.push(`## ${COSTAR_HEADINGS[key]}\n${v}`);
+    }
+  }
+  return parts.join("\n\n").trim();
+}
+
+/** Fill “Compare — before” with the base CO-STAR markdown (raw user inputs under headers). */
+function syncCompareBefore(includeBasePrompt) {
+  document.getElementById("compareBeforeInput").value = buildBaseCostarMarkdown(includeBasePrompt);
+}
+
+/**
+ * Push the expanded working prompt into downstream steps (method apply, scoring, compare after).
  */
 function syncWorkingPrompt(text) {
   const t = String(text || "").trim();
@@ -127,12 +168,14 @@ async function executeCostarExtend() {
     fillDraftFields(draft);
     showDraftSection();
   }
+  syncCompareBefore(false);
   setOutput("costarOutput", data);
   return data;
 }
 
 async function executeApplyExtension() {
   requireSession();
+  syncCompareBefore(true);
   const data = await apiCall("POST", "/v1/steps/apply_extension/execute", {
     session_id: state.sessionId,
     payload: {

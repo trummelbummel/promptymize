@@ -5,7 +5,25 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from auto_prompt.prompt_optimizer.agent import PromptOptimizerAgent
+from auto_prompt.prompt_optimizer.agent import PromptOptimizerAgent, format_costar_markdown
+
+
+def test_format_costar_markdown_uses_headers() -> None:
+    text = format_costar_markdown(
+        objectives="Ship faster",
+        fields={
+            "context": "SaaS",
+            "objective": "Summarize",
+            "style": "bullets",
+            "tone": "neutral",
+            "audience": "PMs",
+            "response": "md",
+        },
+    )
+    assert "## Task objectives" in text
+    assert "Ship faster" in text
+    assert "## Context" in text and "SaaS" in text
+    assert "## Response" in text and "md" in text
 
 
 def test_agent_loads_csv_context_filtered_by_model_type(tmp_path: Path) -> None:
@@ -70,7 +88,10 @@ def test_agent_requires_user_approval_before_apply() -> None:
     approved = agent.approve_costar_extension(edited_fields={"tone": "friendly"})
     assert approved.fields["tone"] == "friendly"
     updated = agent.apply_verified_extension(user_prompt="Please help with policy")
-    assert "- tone: friendly" in updated
+    assert "## Tone" in updated
+    assert "friendly" in updated
+    assert "- tone:" not in updated
+    assert "## Task objectives" in updated
 
 
 def test_agent_delegates_scoring_to_adapter() -> None:
