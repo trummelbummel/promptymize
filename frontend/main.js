@@ -33,6 +33,37 @@ const state = {
   sessionId: null,
 };
 
+function setModelTypeOptions(modelTypes) {
+  const select = document.getElementById("modelType");
+  select.innerHTML = "";
+  for (const item of modelTypes) {
+    const option = document.createElement("option");
+    option.value = item.id;
+    option.textContent = item.label;
+    select.appendChild(option);
+  }
+}
+
+async function loadModelTypes() {
+  try {
+    const data = await apiCall("GET", "/v1/model-types");
+    const modelTypes = Array.isArray(data.model_types) ? data.model_types : [];
+    if (modelTypes.length > 0) {
+      setModelTypeOptions(modelTypes);
+      return;
+    }
+  } catch {
+    // Ignore and fall back to defaults below.
+  }
+  // Fallback keeps UI usable before CSV exists.
+  setModelTypeOptions([
+    { id: "all", label: "all" },
+    { id: "gpt", label: "gpt" },
+    { id: "claude", label: "claude" },
+    { id: "gemini", label: "gemini" },
+  ]);
+}
+
 async function apiCall(method, path, body = null) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method,
@@ -201,6 +232,9 @@ document.getElementById("createSessionBtn").addEventListener("click", async () =
     document.getElementById("sessionStatus").textContent = String(err.message || err);
   }
 });
+
+// Populate model dropdown on page load from context CSV-backed API.
+loadModelTypes();
 
 document.getElementById("costarExtendBtn").addEventListener("click", async () => {
   try {

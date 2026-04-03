@@ -100,6 +100,64 @@ class SemanticMethodMerger(dspy.Module):
         return dspy.Prediction(merged_markdown=str(prediction.merged_markdown).strip())
 
 
+class ExtendCostarSections(dspy.Signature):
+    """
+    #### CONTEXT
+
+    You receive a baseline CO-STAR prompt definition with sections for task
+    objectives and each CO-STAR dimension.
+
+    #### OBJECTIVE
+
+    Extend every section with richer, actionable detail while preserving section
+    boundaries. Treat all sections jointly: details in one section should be
+    consistent with and informed by the others (e.g. persona in Context can
+    influence Objective and Response phrasing).
+
+    #### STYLE
+
+    - Return markdown only.
+    - Keep this exact structure and order:
+      - ``## Task objectives``
+      - ``## Context``
+      - ``## Objective``
+      - ``## Style``
+      - ``## Tone``
+      - ``## Audience``
+      - ``## Response``
+    - Keep content under the corresponding section; do not merge sections.
+    - Preserve user intent, add elaboration and specificity.
+    """
+
+    baseline_markdown: str = dspy.InputField(
+        desc="Baseline CO-STAR markdown with Task objectives + six CO-STAR sections.",
+    )
+    rules_markdown: str = dspy.InputField(
+        desc="Optional prompt-method rules markdown context to ground elaboration.",
+    )
+    extended_markdown: str = dspy.OutputField(
+        desc=(
+            "Extended markdown with the same seven section headers, richer details, "
+            "and cross-section consistency."
+        ),
+    )
+
+
+class CostarExtensionGenerator(dspy.Module):
+    """DSPy module that expands baseline CO-STAR sections in one joint pass."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.extend = dspy.ChainOfThought(ExtendCostarSections)
+
+    def forward(self, baseline_markdown: str, rules_markdown: str = "") -> dspy.Prediction:
+        prediction = self.extend(
+            baseline_markdown=baseline_markdown,
+            rules_markdown=rules_markdown.strip(),
+        )
+        return dspy.Prediction(extended_markdown=str(prediction.extended_markdown).strip())
+
+
 class PromptMethodSummarizer(dspy.Module):
     """DSPy module that summarizes free-form text into structured Markdown."""
 

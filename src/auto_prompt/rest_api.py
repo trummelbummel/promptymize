@@ -4,24 +4,14 @@ import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, urlparse
 
 from auto_prompt.errors import ConfigurationError, DependencyUnavailableError, ResourceNotFoundError, ValidationError
-from auto_prompt.prompt_optimizer.agent import COSTAR_FIELDS, PromptOptimizerAgent
+from auto_prompt.prompt_optimizer.agent import COSTAR_FIELDS, PromptOptimizerAgent, format_costar_markdown
+from auto_prompt.promptymization.context_csv import load_context_rows
+from auto_prompt.promptymization.dspy_lm import configure_dspy_lm_from_env
+from auto_prompt.promptymization.dspy_modules import CostarExtensionGenerator
 from auto_prompt.prompt_scorer import ComparisonResult, PromptScorer, ScoreResult
-
-
-def _parse_method_apply_path(path_only: str) -> str | None:
-    """Return method id from ``/v1/methods/{id}/apply`` or ``None``."""
-
-    prefix = "/v1/methods/"
-    suffix = "/apply"
-    if not (path_only.startswith(prefix) and path_only.endswith(suffix)):
-        return None
-    mid = path_only[len(prefix) : -len(suffix)].strip()
-    if not mid:
-        return None
-    return unquote(mid)
 
 
 @dataclass
@@ -75,6 +65,8 @@ class RestApiService:
 
         try:
             if method == "GET":
+                if path_only == "/v1/model-types":
+                    return 200, self._list_model_types()
                 if path_only == "/v1/methods":
                     return 200, self._list_methods(query)
                 return 404, {"error_code": "NOT_FOUND", "message": "Route not found.", "detail": {"path": path_only}}
@@ -98,9 +90,6 @@ class RestApiService:
                 return 200, self._compare(body)
             if path_only == "/v1/uploads/datasets":
                 return 200, self._upload_dataset(body)
-            method_apply_id = _parse_method_apply_path(path_only)
-            if method_apply_id is not None:
-                return 200, self._apply_prompt_method(body, method_id=method_apply_id)
             return 404, {"error_code": "NOT_FOUND", "message": "Route not found.", "detail": {"path": path_only}}
         except ValidationError as exc:
             return 400, {"error_code": "VALIDATION_ERROR", "message": str(exc), "detail": {}}
@@ -110,6 +99,23 @@ class RestApiService:
             return 503, {"error_code": "CONFIGURATION_ERROR", "message": str(exc), "detail": {}}
         except DependencyUnavailableError as exc:
             return 502, {"error_code": "DEPENDENCY_UNAVAILABLE", "message": str(exc), "detail": {}}
+
+    def _list_model_types(self) -> dict[str, Any]:
+        """
+        Return distinct model_type values present in the context CSV.
+
+        Includes ``all`` when present in rows. Returns an empty list when no CSV rows
+        are available yet.
+        """
+
+        rows = load_context_rows(context_path=self.context_path, include_all_rows=True)
+        values = sorted({row.model_type.strip().lower() for row in rows if row.model_type.strip()})
+        return {
+            "model_types": [
+                {"id": value, "label": value}
+                for value in values
+            ]
+        }
 
     def _list_methods(self, query: dict[str, list[str]]) -> dict[str, Any]:
         """Return distinct prompt-method names from the session's filtered context CSV rows."""
@@ -128,41 +134,6 @@ class RestApiService:
             seen.add(name)
             methods.append({"method_id": name, "label": name})
         return {"session_id": session.session_id, "methods": methods}
-
-    def _apply_prompt_method(self, body: dict[str, Any], *, method_id: str) -> dict[str, Any]:
-        """
-        Reshape ``user_prompt`` using the selected method's rows from the context CSV.
-
-        Returns a ``shaped_prompt`` that prepends structure and appends the method rules
-        as Markdown (no LM call in this MVP).
-        """
-
-        session = self._get_session(str(body.get("session_id", "")).strip())
-        payload = dict(body.get("payload", {}) or {})
-        user_prompt = str(payload.get("user_prompt", "")).strip()
-        if not user_prompt:
-            raise ValidationError("user_prompt is required in payload")
-
-        wanted = method_id.strip()
-        rows = [
-            r
-            for r in session.agent.load_context_rows()
-            if r.method_name.strip().lower() == wanted.lower()
-        ]
-        if not rows:
-            raise ResourceNotFoundError(f"Method {wanted!r} not found in context for this session.")
-
-        rules_md = "\n\n".join(r.section_markdown.strip() for r in rows if r.section_markdown.strip())
-        shaped = (
-            f"# Prompt shaped with method: {rows[0].method_name}\n\n"
-            f"## Your prompt\n{user_prompt}\n\n"
-            f"## Method rules (from context library)\n{rules_md}\n"
-        )
-        return {
-            "session_id": session.session_id,
-            "method_id": rows[0].method_name,
-            "shaped_prompt": shaped,
-        }
 
     def _create_session(self, body: dict[str, Any]) -> dict[str, Any]:
         model_type = str(body.get("model_type", "all")).strip().lower() or "all"
@@ -298,31 +269,88 @@ class RestApiService:
 
     def _rules_based_costar_extension(self, agent: PromptOptimizerAgent, payload: dict[str, str]) -> dict[str, str]:
         """
-        Expand each CO-STAR answer into a more verbose form using task objectives and
-        prompt-method context from ``prompt_methods_context.csv`` (when available).
+        Expand baseline CO-STAR via a single DSPy call that sees all sections jointly.
+
+        Falls back to deterministic per-section elaboration if DSPy cannot be configured
+        in the current runtime.
         """
 
+        baseline = format_costar_markdown(
+            objectives=str(payload.get("objectives", "")).strip(),
+            fields={k: str(payload.get(k, "")).strip() for k in COSTAR_FIELDS},
+        )
         ctx = ""
         try:
             ctx = agent.load_context_markdown()
         except Exception:
             pass
-        max_excerpt = 1800
-        excerpt = (ctx[:max_excerpt] + "…") if len(ctx) > max_excerpt else ctx
-        objectives = payload.get("objectives", "").strip()
+        max_excerpt = 2200
+        rules_markdown = (ctx[:max_excerpt] + "…") if len(ctx) > max_excerpt else ctx
+
+        try:
+            configure_dspy_lm_from_env()
+            prediction = CostarExtensionGenerator().forward(
+                baseline_markdown=baseline,
+                rules_markdown=rules_markdown,
+            )
+            extended = str(prediction.extended_markdown).strip()
+            if extended:
+                parsed = self._extract_costar_sections_from_markdown(extended)
+                for key in COSTAR_FIELDS:
+                    if not parsed.get(key, "").strip():
+                        parsed[key] = str(payload.get(key, "")).strip()
+                return parsed
+        except (ConfigurationError, DependencyUnavailableError):
+            pass
+        except Exception:
+            # Keep API responsive even if model call fails unexpectedly.
+            pass
+
+        # Deterministic fallback for local/dev environments without LM config.
+        objectives = str(payload.get("objectives", "")).strip()
         out: dict[str, str] = {}
         for key in COSTAR_FIELDS:
             base = str(payload.get(key, "")).strip()
-            lines = [
-                base,
-                "",
-                f"**Elaboration:** Operationalize the **{key}** dimension for: {objectives}",
-            ]
-            if excerpt.strip():
-                lines.extend(["", "**Grounding (prompt-method rules excerpt):**", excerpt])
-            else:
-                lines.append("**Grounding:** No prompt-method context loaded (missing or empty CSV).")
+            lines = [base, "", f"Elaborate this {key} section for objective: {objectives}."]
+            if rules_markdown.strip():
+                lines.extend(["", "Grounding rules:", rules_markdown])
             out[key] = "\n".join(lines).strip()
+        return out
+
+    def _extract_costar_sections_from_markdown(self, markdown: str) -> dict[str, str]:
+        """
+        Parse markdown ``##`` sections and map them back to canonical CO-STAR fields.
+        """
+
+        title_to_key = {
+            "context": "context",
+            "objective": "objective",
+            "style": "style",
+            "tone": "tone",
+            "audience": "audience",
+            "response": "response",
+        }
+        out: dict[str, str] = {k: "" for k in COSTAR_FIELDS}
+        current_key: str | None = None
+        buf: list[str] = []
+
+        def flush() -> None:
+            nonlocal buf, current_key
+            if current_key:
+                out[current_key] = "\n".join(buf).strip()
+            buf = []
+
+        for raw in markdown.splitlines():
+            line = raw.strip()
+            if line.startswith("## "):
+                flush()
+                title = line[3:].strip().lower()
+                current_key = title_to_key.get(title)
+                continue
+            if current_key is not None:
+                buf.append(raw.rstrip())
+        flush()
+
         return out
 
     def _score_result_to_json(self, result: ScoreResult) -> dict[str, Any]:

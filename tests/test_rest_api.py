@@ -108,30 +108,6 @@ def test_rest_api_scoring_routes(tmp_path: Path) -> None:
         assert "delta" in compare_body["comparison_result"]
 
 
-def test_rest_api_apply_prompt_method_returns_shaped_prompt(tmp_path: Path) -> None:
-    context_path = tmp_path / "prompt_methods_context.csv"
-    _write_context_csv(context_path)
-    api = RestApiService(context_path=context_path)
-    _, session = api.handle(method="POST", path="/v1/sessions", body={"model_type": "gpt"})
-    sid = session["session_id"]
-
-    from urllib.parse import quote
-
-    mid = quote("Universal", safe="")
-    code, body = api.handle(
-        method="POST",
-        path=f"/v1/methods/{mid}/apply",
-        body={
-            "session_id": sid,
-            "payload": {"user_prompt": "Summarize the doc."},
-        },
-    )
-    assert code == 200
-    assert "Universal" in body["method_id"]
-    assert "Summarize the doc." in body["shaped_prompt"]
-    assert "State output format" in body["shaped_prompt"] or "Universal" in body["shaped_prompt"]
-
-
 def test_rest_api_get_methods_returns_distinct_names(tmp_path: Path) -> None:
     context_path = tmp_path / "prompt_methods_context.csv"
     _write_context_csv(context_path)
@@ -145,6 +121,18 @@ def test_rest_api_get_methods_returns_distinct_names(tmp_path: Path) -> None:
     labels = {m["label"] for m in body["methods"]}
     assert "Universal" in labels
     assert "GPT JSON" in labels
+
+
+def test_rest_api_get_model_types_from_context_csv(tmp_path: Path) -> None:
+    context_path = tmp_path / "prompt_methods_context.csv"
+    _write_context_csv(context_path)
+    api = RestApiService(context_path=context_path)
+
+    code, body = api.handle(method="GET", path="/v1/model-types", body={})
+    assert code == 200
+    ids = [m["id"] for m in body["model_types"]]
+    assert "all" in ids
+    assert "gpt" in ids
 
 
 def test_rest_api_upload_route(tmp_path: Path) -> None:
